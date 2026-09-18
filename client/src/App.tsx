@@ -1,33 +1,68 @@
-import { useEffect, useState } from "react";
+import { useState, type FormEvent } from "react";
 
-function App() {
-	const [status, setStatus] = useState<string>("Loading...");
+type WebsiteStatus = {
+	url: string;
+	isUp: boolean;
+	statusCode: number | null;
+	responseTime: number;
+};
 
-	useEffect(() => {
-		async function fetchStatus() {
-			try {
-				const response = await fetch("/api/health");
+export default function App() {
+	const [url, setUrl] = useState("");
+	const [status, setStatus] = useState<WebsiteStatus | null>(null);
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 
-				if (!response.ok) {
-					throw new Error("Failed to fetch status");
-				}
+	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+		e.preventDefault();
 
-				const data = await response.json();
-				setStatus(data.status);
-			} catch {
-				setStatus("Backend unavailable");
+		setLoading(true);
+		setError(null);
+		setStatus(null);
+
+		try {
+			console.log(url);
+			const response = await fetch(`/api/status?url=${encodeURIComponent(url)}`);
+
+			if (!response.ok) {
+				throw new Error("Failed to check website");
 			}
-		}
 
-		fetchStatus();
-	}, []);
+			const data: WebsiteStatus = await response.json();
+			setStatus(data);
+		} catch {
+			setError("Unable to check website");
+		} finally {
+			setLoading(false);
+		}
+	}
 
 	return (
-		<div>
+		<main>
 			<h1>Linea</h1>
-			<p>Backend status: {status}</p>
-		</div>
+			<p>Check the status of any website.</p>
+
+			<form onSubmit={handleSubmit}>
+				<input type="url" placeholder="https://example.com" value={url} onChange={(e) => setUrl(e.target.value)} required />
+
+				<button type="submit" disabled={loading}>
+					{loading ? "Checking..." : "Check Website"}
+				</button>
+			</form>
+
+			{error && <p>{error}</p>}
+
+			{status && (
+				<section>
+					<h2>{status.url}</h2>
+
+					<p>Status: {status.isUp ? "Online" : "Offline"}</p>
+
+					<p>HTTP Status: {status.statusCode ?? "N/A"}</p>
+
+					<p>Response Time: {status.responseTime} ms</p>
+				</section>
+			)}
+		</main>
 	);
 }
-
-export default App;

@@ -7,13 +7,14 @@ export type WebsiteStatus = {
 
 const TIMEOUT_MS = 5000;
 
-export async function checkWebsite(url: string): Promise<WebsiteStatus> {
+export async function checkWebsite(url: string, allowRedirects = true): Promise<WebsiteStatus> {
 	const start = performance.now();
 
 	try {
 		//fetch given url
 		const response = await fetch(url, {
 			signal: AbortSignal.timeout(TIMEOUT_MS),
+			redirect: allowRedirects ? "follow" : "manual",
 		});
 
 		//success
