@@ -1,0 +1,26 @@
+{
+  "name": "linea",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/callmedugan/Linea.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/callmedugan/Linea/issues"
+  },
+  "homepage": "https://github.com/callmedugan/Linea#readme",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ]
+}
