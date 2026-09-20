@@ -1,8 +1,23 @@
 import express from "express";
 import { checkWebsite } from "./checkWebsite.js";
+import path from "path";
+import { middlewareApiLimiter, noSniffHeader } from "./middleware.js";
+import { handlerError } from "./handlers/error.js";
+import "dotenv/config";
 
 const app = express();
-const PORT = 3000;
+
+//used to serve static files - process.cwd will be set in the start script
+const clientPath = path.resolve(process.cwd(), "../client/dist");
+
+// allow json and limit to 100kb of data
+app.use(express.json({ limit: "100kb" }));
+
+// nosniff header
+app.use(noSniffHeader);
+
+// limit overall traffic
+app.use(middlewareApiLimiter);
 
 /* ========================================================================= */
 //                        handlers
@@ -36,9 +51,24 @@ app.get("/api/status", async (req, res) => {
 });
 
 /* ========================================================================= */
-//                        listen
+//                   Error Handling Middleware - must go last
 /* ========================================================================= */
 
-app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
+// Static frontend files
+app.use(express.static(clientPath));
+
+// React Router fallback
+app.get("/{*splat}", (_req, res) => {
+	res.sendFile(path.join(clientPath, "index.html"));
+});
+
+//used for any unknown routes
+app.use("/api", (req, res) => {
+	res.status(404).json({ error: "API route not found" });
+});
+
+app.use(handlerError);
+
+app.listen(process.env.PORT, () => {
+	console.log(`Server running at http://localhost:${process.env.PORT}`);
 });
