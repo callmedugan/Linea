@@ -6,20 +6,25 @@ export async function getWebsiteStatus(req: Request, res: Response) {
 	const url = req.query.url;
 	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
 
-	//try parse
-	let parsedUrl: URL;
-	try {
-		parsedUrl = new URL(url);
-	} catch {
-		return res.status(400).json({ error: "Invalid URL" });
-	}
+	//check site
+	const result = await checkWebsite(url);
 
-	//TODO check for ssrf
-	//check input
-	if (parsedUrl.protocol !== "https:" || parsedUrl.username || parsedUrl.password || parsedUrl.port)
-		return res.status(400).json({ error: "Website not allowed" });
+	//return 200 or 400 based off success and the data
+	return res.status(result.success ? 200 : 400).json(result);
+}
+
+export async function addWebsiteAlert(req: Request, res: Response) {
+	//query params
+	const url = req.query.url;
+	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
 
 	//check site
-	const result = await checkWebsite(parsedUrl.href);
-	res.json(result);
+	const result = await checkWebsite(url);
+
+	//validate that request came from email
+
+	//add to db
+
+	//return 200 or 400 based off success and the data
+	return res.status(result.success ? 200 : 400).json(result);
 }

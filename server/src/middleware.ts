@@ -11,7 +11,7 @@ export const middlewareApiLimiter = rateLimit({
 });
 
 //per IP basis
-export const middlewareSubmissionLimiter = rateLimit({
+export const middlewareIPLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
 	limit: 20,
 	standardHeaders: "draft-8",

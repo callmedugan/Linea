@@ -1,9 +1,9 @@
 import express from "express";
 import path from "path";
-import { middlewareApiLimiter, middlewareSubmissionLimiter, noSniffHeader } from "./middleware.js";
+import { middlewareApiLimiter, middlewareIPLimiter, noSniffHeader } from "./middleware.js";
 import { handlerError } from "./handlers/error.js";
 import "dotenv/config";
-import { getWebsiteStatus } from "./handlers/handlers.js";
+import { addWebsiteAlert, getWebsiteStatus } from "./handlers/handlers.js";
 
 const app = express();
 
@@ -28,7 +28,10 @@ app.get("/api/health", (req, res) => {
 });
 
 //main get status route
-app.get("/api/status", middlewareSubmissionLimiter, getWebsiteStatus);
+app.get("/api/status", middlewareIPLimiter, getWebsiteStatus);
+
+//submit website to watch
+app.post("/api/status", middlewareIPLimiter, addWebsiteAlert);
 
 /* ========================================================================= */
 //                   Error Handling Middleware - must go last
