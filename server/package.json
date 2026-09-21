@@ -6,16 +6,20 @@
 	"scripts": {
 		"dev": "tsx watch src/index.ts",
 		"build": "tsc",
-		"start": "node dist/index.js"
+		"start": "node dist/index.js",
+		"test": "npx tsx src/testing/test.ts",
+		"test-server": "npx tsx src/testing/testServer.ts"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "ISC",
 	"type": "module",
 	"dependencies": {
+		"csv-parse": "^7.0.2",
 		"dotenv": "^18.0.1",
 		"express": "^5.2.1",
 		"express-rate-limit": "^8.7.0",
+		"guarded-fetch": "^0.1.4",
 		"ipaddr.js": "^1.9.1",
 		"undici": "^7.29.1"
 	},

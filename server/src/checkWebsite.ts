@@ -1,6 +1,4 @@
-import { lookup } from "dns/promises";
-import ipaddr from "ipaddr.js";
-import { Agent, fetch } from "undici";
+import { guardedFetch, GuardedFetchError } from "guarded-fetch";
 
 export type WebsiteStatus = {
 	url: string;
@@ -26,26 +24,17 @@ export async function checkWebsite(input: string): Promise<CheckResult> {
 	const start = performance.now();
 
 	try {
-		// 1. Validate URL
+		//validate URL
 		const url = validateUrl(input);
 
-		// 2. Resolve hostname
-		const addresses = await resolveHostname(url.hostname);
-
-		// 3. Validate every resolved IP
-		const firstAddress = addresses[0];
-
-		if (!firstAddress) throw new Error("No IP addresses found");
-
-		if (addresses.some((address) => !isPublicIp(address.address))) throw new Error("Unsafe IP address");
-
-		// 4. Fetch using a validated IP
-		const result = await fetchValidatedUrl(url, firstAddress.address, start);
+		//fetch using guarded-fetch
+		const result = await fetchValidatedUrl(url, start);
 
 		//return
 		return { success: true, data: result };
 	} catch (e) {
 		//fetch or validation failure
+		if (e instanceof GuardedFetchError) return { success: false, error: e.code + ": " + e.message };
 		if (e instanceof Error) return { success: false, error: e.message };
 		return { success: false, error: "Unknown error" };
 	}
@@ -68,7 +57,7 @@ function validateUrl(input: string): URL {
 	//dont allow creds
 	if (url.username || url.password) throw new Error("Credentials not allowed");
 
-	//dont allow any ports besides 80 and 443 for http(s)
+	//dont allow any ports besides 80 and 443 for http(s) - use 3001 port for testing
 	if (url.port && !["80", "443"].includes(url.port)) throw new Error("Invalid port");
 
 	//url should have a hostname
@@ -79,50 +68,15 @@ function validateUrl(input: string): URL {
 }
 
 /**
- * Returns the resolved ipv4/6 address
+ * make an HTTP request without letting DNS choose a different ip address
  */
-async function resolveHostname(hostname: string) {
-	return lookup(hostname, { all: true });
-}
-
-/**
- * Checks whether an ip address is publicly routable
- */
-export function isPublicIp(ip: string): boolean {
+async function fetchValidatedUrl(url: URL, start: number): Promise<WebsiteStatus> {
+	//this is the actual request using guarded-fetch
 	try {
-		const address = ipaddr.process(ip);
-		return address.range() === "unicast";
-	} catch {
-		return false;
-	}
-}
-
-/**
- * make an HTTP request without letting DNS choose a different ip address from the one we already validated
- */
-async function fetchValidatedUrl(url: URL, ip: string, start: number): Promise<WebsiteStatus> {
-	const agent = new Agent({
-		connect: {
-			lookup: (_hostname, _options, callback) => {
-				//on success
-				callback(null, [
-					{
-						//use our validated ip
-						address: ip,
-						//ipv4 or 6
-						family: ip.includes(":") ? 6 : 4,
-					},
-				]);
-			},
-		},
-	});
-
-	//this is the actual request using  our agent
-	try {
-		const response = await fetch(url, {
-			dispatcher: agent,
-			redirect: "manual",
-			signal: AbortSignal.timeout(TIMEOUT_MS),
+		const response = await guardedFetch(url.toString(), {
+			method: "GET",
+			followRedirects: false,
+			timeoutMs: TIMEOUT_MS,
 		});
 
 		//fetch success
@@ -131,6 +85,7 @@ async function fetchValidatedUrl(url: URL, ip: string, start: number): Promise<W
 
 		//consume the body before returning
 		await response.body?.cancel();
+
 		//return
 		return {
 			url: url.toString(),
@@ -138,16 +93,19 @@ async function fetchValidatedUrl(url: URL, ip: string, start: number): Promise<W
 			statusCode,
 			responseTime,
 		};
-	} catch {
-		//fetch failure
+	} catch (e) {
+		//if guarded fetch throws an error, determine if the error is a security issue or an actual downtime error
+		if (e instanceof GuardedFetchError) {
+			if (["invalid_url", "protocol_not_allowed", "host_not_allowed", "hostname_unsafe", "redirect_to_unsafe_host"].includes(e.code)) {
+				throw e;
+			}
+		}
+		//fetch failure - generic error
 		return {
 			url: url.toString(),
 			isUp: false,
 			statusCode: null,
 			responseTime: Math.round(performance.now() - start),
 		};
-	} finally {
-		//destroy to prevent agent from hanging while trying to close normally
-		await agent.destroy();
 	}
 }
