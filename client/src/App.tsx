@@ -1,10 +1,13 @@
 import { useState, type FormEvent } from "react";
 
 type WebsiteStatus = {
-	url: string;
-	isUp: boolean;
-	statusCode: number | null;
-	responseTime: number;
+	success: boolean;
+	data: {
+		url: string;
+		isUp: boolean;
+		statusCode: number | null;
+		responseTime: number;
+	};
 };
 
 export default function App() {
@@ -54,13 +57,13 @@ export default function App() {
 
 			{status && (
 				<section>
-					<h2>{status.url}</h2>
+					<h2>{status.data.url}</h2>
 
-					<p>Status: {status.isUp ? "Online" : "Offline"}</p>
+					<p>Status: {status.data.isUp ? "Online" : "Offline"}</p>
 
-					<p>HTTP Status: {status.statusCode ?? "N/A"}</p>
+					<p>HTTP Status: {status.data.statusCode ?? "N/A"}</p>
 
-					<p>Response Time: {status.responseTime} ms</p>
+					<p>Response Time: {status.data.responseTime} ms</p>
 				</section>
 			)}
 		</main>
