@@ -1,9 +1,9 @@
 import express from "express";
 import path from "path";
-import { middlewareApiLimiter, middlewareIPLimiter, noSniffHeader } from "./middleware.js";
+import { middlewareApiLimiter, middlewareEmailLimiter, middlewareIPLimiter, noSniffHeader } from "./middleware.js";
 import { handlerError } from "./handlers/error.js";
 import "dotenv/config";
-import { addWebsiteAlert, getWebsiteStatus } from "./handlers/handlers.js";
+import { addWebsiteAlert, getWebsiteStatus, sendLoginEmail } from "./handlers/handlers.js";
 
 const app = express();
 
@@ -17,7 +17,7 @@ app.use(express.json({ limit: "100kb" }));
 app.use(noSniffHeader);
 
 // limit overall traffic
-app.use(middlewareApiLimiter);
+app.use(middlewareApiLimiter, middlewareIPLimiter);
 
 /* ========================================================================= */
 //                        handlers
@@ -28,10 +28,13 @@ app.get("/api/health", (req, res) => {
 });
 
 //main get status route
-app.get("/api/status", middlewareIPLimiter, getWebsiteStatus);
+app.get("/api/status", getWebsiteStatus);
 
 //submit website to watch
-app.post("/api/status", middlewareIPLimiter, addWebsiteAlert);
+app.post("/api/status", addWebsiteAlert);
+
+//send email to login
+app.post("/api/login", middlewareEmailLimiter, sendLoginEmail);
 
 /* ========================================================================= */
 //                   Error Handling Middleware - must go last

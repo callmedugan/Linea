@@ -3,9 +3,15 @@ import rateLimit from "express-rate-limit";
 
 //for total requests
 export const middlewareApiLimiter = rateLimit({
-	windowMs: 15 * 60 * 1000, // 15 minutes
-	limit: 300, // 300 requests per IP per window
-	message: { status: 429, error: "Too many requests. Try again later." },
+	windowMs: 15 * 60 * 1000, //15 mins
+	limit: 300,
+	// All requests share the same counter
+	keyGenerator: () => "global",
+
+	message: {
+		error: "Service is temporarily busy. Try again later.",
+	},
+
 	standardHeaders: "draft-8",
 	legacyHeaders: false,
 });
@@ -18,6 +24,17 @@ export const middlewareIPLimiter = rateLimit({
 	legacyHeaders: false,
 	message: {
 		error: "Too many website submissions. Try again later.",
+	},
+});
+
+//for emails
+export const middlewareEmailLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 5,
+	standardHeaders: "draft-8",
+	legacyHeaders: false,
+	message: {
+		error: "Too many email requests. Try again later.",
 	},
 });
 

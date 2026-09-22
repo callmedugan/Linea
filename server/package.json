@@ -21,7 +21,8 @@
 		"express": "^5.2.1",
 		"express-rate-limit": "^8.7.0",
 		"guarded-fetch": "^0.1.4",
-		"pg": "^8.23.0"
+		"pg": "^8.23.0",
+		"zod": "^4.6.5"
 	},
 	"devDependencies": {
 		"@types/express": "^5.0.6",

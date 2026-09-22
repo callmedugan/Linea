@@ -1,40 +1,34 @@
 import { useState, type FormEvent } from "react";
 
-type WebsiteStatus = {
-	success: boolean;
-	data: {
-		url: string;
-		isUp: boolean;
-		statusCode: number | null;
-		responseTime: number;
-	};
-};
-
 export default function App() {
-	const [url, setUrl] = useState("");
-	const [status, setStatus] = useState<WebsiteStatus | null>(null);
+	const [email, setEmail] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
+	const [success, setSuccess] = useState(false);
 
 	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
 		e.preventDefault();
 
 		setLoading(true);
 		setError(null);
-		setStatus(null);
+		setSuccess(false);
 
 		try {
-			console.log(url);
-			const response = await fetch(`/api/status?url=${encodeURIComponent(url)}`);
+			const response = await fetch("/api/login", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({ email }),
+			});
 
 			if (!response.ok) {
-				throw new Error("Failed to check website");
+				throw new Error("Failed to send login email");
 			}
 
-			const data: WebsiteStatus = await response.json();
-			setStatus(data);
+			setSuccess(true);
 		} catch {
-			setError("Unable to check website");
+			setError("Unable to send login email. Please try again.");
 		} finally {
 			setLoading(false);
 		}
@@ -43,29 +37,19 @@ export default function App() {
 	return (
 		<main>
 			<h1>Linea</h1>
-			<p>Check the status of any website.</p>
+			<p>Enter your email to get started.</p>
 
 			<form onSubmit={handleSubmit}>
-				<input type="url" placeholder="https://example.com" value={url} onChange={(e) => setUrl(e.target.value)} required />
+				<input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
 
 				<button type="submit" disabled={loading}>
-					{loading ? "Checking..." : "Check Website"}
+					{loading ? "Sending..." : "Continue with Email"}
 				</button>
 			</form>
 
 			{error && <p>{error}</p>}
 
-			{status && (
-				<section>
-					<h2>{status.data.url}</h2>
-
-					<p>Status: {status.data.isUp ? "Online" : "Offline"}</p>
-
-					<p>HTTP Status: {status.data.statusCode ?? "N/A"}</p>
-
-					<p>Response Time: {status.data.responseTime} ms</p>
-				</section>
-			)}
+			{success && <p>Check your inbox for a login link.</p>}
 		</main>
 	);
 }
