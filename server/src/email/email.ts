@@ -6,10 +6,12 @@ const ses = new SESClient({
 });
 
 /**Sends email and returns whether or not it was successfully sent */
-export default async function sendEmail(type: "login" | "alert", email: string): Promise<boolean> {
+export default async function sendEmail(type: "login" | "alert", email: string, tokenRaw: string): Promise<boolean> {
 	if (type === "login") {
 		//create command
-		const command = getLoginEmailCommand(email, `${process.env.MAGIC_LINK_URL}/dashboard`);
+		const loginUrl = new URL("/auth/verify", process.env.MAGIC_LINK_URL);
+		loginUrl.searchParams.set("token", tokenRaw);
+		const command = getLoginEmailCommand(email, loginUrl.toString());
 		//send
 		const result = await ses.send(command);
 		//return success

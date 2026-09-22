@@ -27,8 +27,19 @@ export const middlewareIPLimiter = rateLimit({
 	},
 });
 
-//for emails
-export const middlewareEmailLimiter = rateLimit({
+/**limits to 5 requests per 15 minutes for email send requests */
+export const middlewareSendEmailLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000,
+	limit: 5,
+	standardHeaders: "draft-8",
+	legacyHeaders: false,
+	message: {
+		error: "Too many email requests. Try again later.",
+	},
+});
+
+/**limits to 5 requests per 15 minutes for email links */
+export const middlewareEmailLinkLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	limit: 5,
 	standardHeaders: "draft-8",

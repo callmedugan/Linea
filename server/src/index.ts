@@ -1,9 +1,9 @@
 import express from "express";
 import path from "path";
-import { middlewareApiLimiter, middlewareEmailLimiter, middlewareIPLimiter, noSniffHeader } from "./middleware.js";
+import { middlewareApiLimiter, middlewareSendEmailLimiter, middlewareIPLimiter, noSniffHeader, middlewareEmailLinkLimiter } from "./middleware.js";
 import { handlerError } from "./handlers/error.js";
 import "dotenv/config";
-import { addWebsiteAlert, getWebsiteStatus, sendLoginEmail } from "./handlers/handlers.js";
+import { addWebsiteAlert, getWebsiteStatus, sendLoginEmail, verifyLogin as verifyEmailLink } from "./handlers/handlers.js";
 
 const app = express();
 
@@ -34,7 +34,10 @@ app.get("/api/status", getWebsiteStatus);
 app.post("/api/status", addWebsiteAlert);
 
 //send email to login
-app.post("/api/login", middlewareEmailLimiter, sendLoginEmail);
+app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail);
+
+//called from the link given to the user's email
+app.post("/login/verify", middlewareEmailLinkLimiter, verifyEmailLink);
 
 /* ========================================================================= */
 //                   Error Handling Middleware - must go last
