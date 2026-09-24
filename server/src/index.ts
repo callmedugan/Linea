@@ -1,9 +1,17 @@
 import express from "express";
 import path from "path";
-import { middlewareApiLimiter, middlewareSendEmailLimiter, middlewareIPLimiter, noSniffHeader, middlewareEmailLinkLimiter } from "./middleware.js";
+import {
+	middlewareApiLimiter,
+	middlewareSendEmailLimiter,
+	middlewareIPLimiter,
+	noSniffHeader,
+	middlewareEmailLinkLimiter,
+	middlewareRequireSession,
+} from "./middleware.js";
 import { handlerError } from "./handlers/error.js";
 import "dotenv/config";
-import { addWebsiteAlert, getWebsiteStatus, sendLoginEmail, verifyLogin as verifyEmailLink } from "./handlers/handlers.js";
+import { addWebsiteAlert, deleteWebsiteAlert, sendLoginEmail, verifyLogin as verifyEmailLink } from "./handlers/handlers.js";
+import cookieParser from "cookie-parser";
 
 const app = express();
 
@@ -12,6 +20,9 @@ const clientPath = path.resolve(process.cwd(), "../client/dist");
 
 // allow json and limit to 100kb of data
 app.use(express.json({ limit: "100kb" }));
+
+//used for reading cookies
+app.use(cookieParser());
 
 // nosniff header
 app.use(noSniffHeader);
@@ -27,17 +38,14 @@ app.get("/api/health", (req, res) => {
 	res.json({ status: "ok" });
 });
 
-//main get status route
-app.get("/api/status", getWebsiteStatus);
+//auth
+app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail); //send email to login
+app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink); //called from the link given to the user's email
 
-//submit website to watch
-app.post("/api/status", addWebsiteAlert);
-
-//send email to login
-app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail);
-
-//called from the link given to the user's email
-app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink);
+//websites
+//app.get("/api/websites", middlewareRequireSession, getWebsiteStatus); //get status route - will most likely not be used
+app.post("/api/websites", middlewareRequireSession, addWebsiteAlert); //submit website to watch
+app.delete("/api/websites/:id", middlewareRequireSession, deleteWebsiteAlert); //removes website from watchlist
 
 /* ========================================================================= */
 //                   Error Handling Middleware - must go last

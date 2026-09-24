@@ -19,7 +19,7 @@ type CheckResult =
 
 const TIMEOUT_MS = 5000;
 
-/**Checks website for given user input. Handles url validation.*/
+/**Checks website for given user input. Handles url validation. Returns success with data or error*/
 export async function checkWebsite(input: string): Promise<CheckResult> {
 	const start = performance.now();
 

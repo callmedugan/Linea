@@ -1,3 +1,5 @@
+import AddWebsiteForm from "../components/AddWebsiteForm";
+
 export default function DashboardPage() {
 	return (
 		<main>
@@ -8,9 +10,7 @@ export default function DashboardPage() {
 				<h2>Your Websites</h2>
 				<p>You haven't added any websites yet.</p>
 
-				<button type="button" disabled>
-					Add Website
-				</button>
+				<AddWebsiteForm />
 			</section>
 		</main>
 	);

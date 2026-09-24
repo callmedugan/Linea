@@ -3,36 +3,65 @@ import { checkWebsite } from "../checkWebsite.js";
 import z from "zod";
 import sendEmail from "../email/email.js";
 import { getTokens, hashToken } from "../auth/auth.js";
-import { consumeTokenInDb, insertNewSessionInDb, insertNewTokenInDb } from "../db/queries.js";
+import { consumeTokenInDb, deleteWebsiteInDb, insertNewSessionInDb, insertNewTokenInDb, insertWebsiteInDb } from "../db/queries.js";
 
 const EMAIL_LINK_EXPIRATION_MINS = 15;
 
-export async function getWebsiteStatus(req: Request, res: Response) {
-	//query params
-	const url = req.query.url;
-	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
+/* ========================================================================= */
+//                        websites
+/* ========================================================================= */
 
-	//check site
-	const result = await checkWebsite(url);
+// export async function getWebsiteStatus(req: Request, res: Response) {
+// 	//query params
+// 	const url = req.query.url;
+// 	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
 
-	//return 200 or 400 based off success and the data
-	return res.status(result.success ? 200 : 400).json(result);
-}
+// 	//check site
+// 	const result = await checkWebsite(url);
+
+// 	//return 200 or 400 based off success and the data
+// 	return res.status(result.success ? 200 : 400).json(result);
+// }
 
 export async function addWebsiteAlert(req: Request, res: Response) {
+	//check session
+	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
+
 	//query params
 	const url = req.query.url;
 	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
 
-	//check site
-	const result = await checkWebsite(url);
-
-	//validate that request came from email
+	//check user provided site
+	const website = await checkWebsite(url);
+	if (!website.success) return res.status(400).json({ error: website.error });
 
 	//add to db
+	await insertWebsiteInDb(req.session.email, website.data.url);
 
-	//return 200 or 400 based off success and the data
-	return res.status(result.success ? 200 : 400).json(result);
+	//return 200 for success
+	return res.status(200).json(website);
+}
+
+const websiteIdSchema = z.object({
+	id: z.uuid(),
+});
+
+/**deletes website alert from db with given id and session email */
+export async function deleteWebsiteAlert(req: Request, res: Response) {
+	//check session
+	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
+
+	//params
+	const result = websiteIdSchema.safeParse(req.params);
+	if (!result.success) return res.status(400).json({ error: "Invalid website ID" });
+	const { id } = result.data;
+
+	//delete from db
+	const deleted = await deleteWebsiteInDb(req.session.email, id);
+	if (!deleted) return res.status(404).json({ error: "Website not found" });
+
+	//return 200 for success
+	return res.sendStatus(204);
 }
 
 /* ========================================================================= */
