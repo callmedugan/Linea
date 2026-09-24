@@ -485,3 +485,44 @@ input {
 .auth-card .form-error {
 	margin: 14px 0 0;
 }
+
+.website-actions {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
+
+.delete-button {
+	padding: 6px 10px;
+
+	border: 1px solid var(--border);
+	border-radius: 6px;
+
+	color: var(--danger);
+	background: transparent;
+
+	font-size: 13px;
+	cursor: pointer;
+
+	transition:
+		background 120ms ease,
+		border-color 120ms ease;
+}
+
+.delete-button:hover:not(:disabled) {
+	background: rgba(239, 68, 68, 0.08);
+	border-color: rgba(239, 68, 68, 0.35);
+}
+
+.delete-button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.website-error {
+	display: block;
+	margin-top: 3px;
+
+	color: var(--danger);
+	font-size: 12px;
+}

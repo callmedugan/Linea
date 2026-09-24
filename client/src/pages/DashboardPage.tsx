@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import AddWebsiteForm from "../components/AddWebsiteForm";
-
-type Website = {
-	id: string;
-	url: string;
-	intervalSeconds: number;
-	nextCheckAt: string;
-	createdAt: string;
-};
+import WebsiteCard from "../components/WebsiteCard";
+import type { Website } from "../types";
 
 export default function DashboardPage() {
 	const [websites, setWebsites] = useState<Website[]>([]);
@@ -57,16 +51,7 @@ export default function DashboardPage() {
 					) : websites.length === 0 ? (
 						<p className="empty-state">You haven't added any websites yet.</p>
 					) : (
-						websites.map((website) => (
-							<div className="website-card" key={website.id}>
-								<div className="website-info">
-									<span className="status-dot" />
-									<p>{website.url}</p>
-								</div>
-
-								<span className="website-interval">Every {website.intervalSeconds}s</span>
-							</div>
-						))
+						websites.map((website) => <WebsiteCard key={website.id} website={website} onDeleted={getWebsites} />)
 					)}
 				</div>
 
