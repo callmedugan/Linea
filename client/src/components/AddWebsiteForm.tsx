@@ -1,12 +1,16 @@
-import { useState, type FormEvent } from "react";
+import { useState, type FormEventHandler } from "react";
 
-export default function AddWebsiteForm() {
+type AddWebsiteFormProps = {
+	onWebsiteAdded: () => Promise<void>;
+};
+
+export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) {
 	const [url, setUrl] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 
-	async function handleSubmit(e: FormEvent<HTMLFormElement>) {
-		e.preventDefault();
+	const handleSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
+		event.preventDefault();
 
 		setLoading(true);
 		setError("");
@@ -22,16 +26,19 @@ export default function AddWebsiteForm() {
 			}
 
 			setUrl("");
-		} catch (err) {
-			setError(err instanceof Error ? err.message : "Failed to add website");
+
+			// refresh websites
+			await onWebsiteAdded();
+		} catch (error) {
+			setError(error instanceof Error ? error.message : "Failed to add website");
 		} finally {
 			setLoading(false);
 		}
-	}
+	};
 
 	return (
 		<form onSubmit={handleSubmit}>
-			<input type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://example.com" required />
+			<input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com" required disabled={loading} />
 
 			<button type="submit" disabled={loading}>
 				{loading ? "Adding..." : "Add Website"}

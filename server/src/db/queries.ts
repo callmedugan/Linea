@@ -16,12 +16,17 @@ export async function insertWebsiteInDb(email: string, url: string) {
 
 /**deletes website record for email and id*/
 export async function deleteWebsiteInDb(email: string, id: string) {
-	const [deletedWebsite] = await db
+	const [result] = await db
 		.delete(websites)
 		.where(and(eq(websites.id, id), eq(websites.email, email)))
 		.returning();
+	return result;
+}
 
-	return deletedWebsite;
+/**gets all website alerts for given email*/
+export async function getWebsitesFromDb(email: string) {
+	const result = db.select().from(websites).where(eq(websites.email, email));
+	return result;
 }
 
 /* ========================================================================= */

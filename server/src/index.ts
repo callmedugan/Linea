@@ -10,7 +10,7 @@ import {
 } from "./middleware.js";
 import { handlerError } from "./handlers/error.js";
 import "dotenv/config";
-import { addWebsiteAlert, deleteWebsiteAlert, sendLoginEmail, verifyLogin as verifyEmailLink } from "./handlers/handlers.js";
+import { addWebsiteAlert, deleteWebsiteAlert, getWebsiteAlerts, sendLoginEmail, verifyLogin as verifyEmailLink } from "./handlers/handlers.js";
 import cookieParser from "cookie-parser";
 
 const app = express();
@@ -43,7 +43,7 @@ app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail); //send email
 app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink); //called from the link given to the user's email
 
 //websites
-//app.get("/api/websites", middlewareRequireSession, getWebsiteStatus); //get status route - will most likely not be used
+app.get("/api/websites", middlewareRequireSession, getWebsiteAlerts); //get alerts for session email
 app.post("/api/websites", middlewareRequireSession, addWebsiteAlert); //submit website to watch
 app.delete("/api/websites/:id", middlewareRequireSession, deleteWebsiteAlert); //removes website from watchlist
 

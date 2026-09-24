@@ -3,7 +3,14 @@ import { checkWebsite } from "../checkWebsite.js";
 import z from "zod";
 import sendEmail from "../email/email.js";
 import { getTokens, hashToken } from "../auth/auth.js";
-import { consumeTokenInDb, deleteWebsiteInDb, insertNewSessionInDb, insertNewTokenInDb, insertWebsiteInDb } from "../db/queries.js";
+import {
+	consumeTokenInDb,
+	deleteWebsiteInDb,
+	getWebsitesFromDb,
+	insertNewSessionInDb,
+	insertNewTokenInDb,
+	insertWebsiteInDb,
+} from "../db/queries.js";
 
 const EMAIL_LINK_EXPIRATION_MINS = 15;
 
@@ -60,8 +67,20 @@ export async function deleteWebsiteAlert(req: Request, res: Response) {
 	const deleted = await deleteWebsiteInDb(req.session.email, id);
 	if (!deleted) return res.status(404).json({ error: "Website not found" });
 
-	//return 200 for success
+	//return 204 for success
 	return res.sendStatus(204);
+}
+
+/**retrives all website alerts for given session email */
+export async function getWebsiteAlerts(req: Request, res: Response) {
+	//check session
+	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
+
+	//get websites from db
+	const result = await getWebsitesFromDb(req.session.email);
+
+	//return 200 for success
+	return res.status(200).json(result);
 }
 
 /* ========================================================================= */
