@@ -15,3 +15,7 @@ export function getTokens(): Tokens {
 
 	return { raw, hash };
 }
+
+export function hashToken(raw: string): string {
+	return createHash("sha256").update(raw).digest("hex");
+}

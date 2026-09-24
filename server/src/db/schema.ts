@@ -20,3 +20,10 @@ export const tokens = snakeCase.table("tokens", {
 	expiresAt: timestamp().notNull(),
 	usedAt: timestamp(),
 });
+
+export const sessions = snakeCase.table("sessions", {
+	id: uuid().primaryKey().defaultRandom(),
+	email: text().notNull(),
+	expiresAt: timestamp().notNull(),
+	createdAt: timestamp().defaultNow().notNull(),
+});

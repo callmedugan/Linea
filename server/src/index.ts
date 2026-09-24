@@ -37,7 +37,7 @@ app.post("/api/status", addWebsiteAlert);
 app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail);
 
 //called from the link given to the user's email
-app.post("/login/verify", middlewareEmailLinkLimiter, verifyEmailLink);
+app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink);
 
 /* ========================================================================= */
 //                   Error Handling Middleware - must go last

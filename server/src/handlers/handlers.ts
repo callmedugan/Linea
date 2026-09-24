@@ -2,8 +2,8 @@ import type { Request, Response } from "express";
 import { checkWebsite } from "../checkWebsite.js";
 import z from "zod";
 import sendEmail from "../email/email.js";
-import { getTokens } from "../auth/auth.js";
-import { insertNewToken } from "../db/queries.js";
+import { getTokens, hashToken } from "../auth/auth.js";
+import { consumeTokenInDb, insertNewSessionInDb, insertNewTokenInDb } from "../db/queries.js";
 
 const EMAIL_LINK_EXPIRATION_MINS = 15;
 
@@ -35,14 +35,15 @@ export async function addWebsiteAlert(req: Request, res: Response) {
 	return res.status(result.success ? 200 : 400).json(result);
 }
 
-const emailSchema = z.object({
-	email: z.email().max(254),
-});
-
 /* ========================================================================= */
 //                        auth
 /* ========================================================================= */
 
+const emailSchema = z.object({
+	email: z.email().max(254),
+});
+
+/**Sends email to user with token to log in. Creates entry in db for the token as well. */
 export async function sendLoginEmail(req: Request, res: Response) {
 	//try to parse provided email
 	const parse = emailSchema.safeParse(req.body);
@@ -54,7 +55,7 @@ export async function sendLoginEmail(req: Request, res: Response) {
 
 	//store hashed
 	try {
-		await insertNewToken(email, hash, EMAIL_LINK_EXPIRATION_MINS);
+		await insertNewTokenInDb(email, hash, EMAIL_LINK_EXPIRATION_MINS);
 	} catch (e) {
 		if (e instanceof Error) return res.status(500).json({ error: e.message });
 		return res.status(500).json({ error: "Failed to create token." });
@@ -72,14 +73,34 @@ export async function sendLoginEmail(req: Request, res: Response) {
 	}
 }
 
+const tokenSchema = z.object({
+	token: z.string().min(1),
+});
+
+/**Checks the token in req body against the db, consumes, and redirects to the user's dashboard*/
 export async function verifyLogin(req: Request, res: Response) {
-	// 1. Get token from req.query
-	// 2. Validate its format
-	// 3. Hash the token
-	// 4. Find matching token in database
-	// 5. Check expiration and usedAt
-	// 6. Atomically mark token as used
-	// 7. Find or create user
-	// 8. Create session and set cookie
-	// 9. Redirect to /dashboard
+	//get token from body
+	const result = tokenSchema.safeParse(req.body);
+	if (!result.success) return res.status(400).json({ error: "Invalid token" });
+	const { token } = result.data;
+
+	//hash to lookup and lookup token to update if found
+	const hashedToken = hashToken(token);
+	const consumedToken = await consumeTokenInDb(hashedToken);
+	if (!consumedToken) return res.status(400).json({ error: "Invalid token" });
+
+	//create session
+	const session = await insertNewSessionInDb(consumedToken.email);
+	if (!session) return res.status(500).json({ error: "Failed to create session - try again" });
+
+	//create cookie
+	res.cookie("session", session.id, {
+		httpOnly: true, //not readable by js
+		secure: process.env.NODE_ENV === "production", //only sent over https in prod
+		sameSite: "lax",
+		maxAge: session.expiresAt.getTime() - Date.now(), //same age as the session
+	});
+
+	//redirect to the dashboard
+	return res.redirect("/dashboard");
 }
