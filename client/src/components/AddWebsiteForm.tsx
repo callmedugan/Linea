@@ -26,8 +26,6 @@ export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) 
 			}
 
 			setUrl("");
-
-			// refresh websites
 			await onWebsiteAdded();
 		} catch (error) {
 			setError(error instanceof Error ? error.message : "Failed to add website");
@@ -37,14 +35,26 @@ export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) 
 	};
 
 	return (
-		<form onSubmit={handleSubmit}>
-			<input type="url" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com" required disabled={loading} />
+		<form className="add-website-form" onSubmit={handleSubmit}>
+			<label htmlFor="website-url">Add website</label>
 
-			<button type="submit" disabled={loading}>
-				{loading ? "Adding..." : "Add Website"}
-			</button>
+			<div className="add-website-controls">
+				<input
+					id="website-url"
+					type="url"
+					value={url}
+					onChange={(event) => setUrl(event.target.value)}
+					placeholder="https://example.com"
+					required
+					disabled={loading}
+				/>
 
-			{error && <p>{error}</p>}
+				<button type="submit" disabled={loading}>
+					{loading ? "Adding..." : "Add Website"}
+				</button>
+			</div>
+
+			{error && <p className="form-error">{error}</p>}
 		</form>
 	);
 }

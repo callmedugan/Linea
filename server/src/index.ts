@@ -40,7 +40,7 @@ app.get("/api/health", (req, res) => {
 
 //auth
 app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail); //send email to login
-app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink); //called from the link given to the user's email
+app.post("/api/login/verify", verifyEmailLink); //called from the link given to the user's email
 
 //websites
 app.get("/api/websites", middlewareRequireSession, getWebsiteAlerts); //get alerts for session email

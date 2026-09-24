@@ -35,24 +35,40 @@ export default function DashboardPage() {
 	}, [getWebsites]);
 
 	return (
-		<main>
-			<h1>Linea</h1>
-			<p>Website Monitoring Dashboard</p>
+		<main className="dashboard">
+			<header className="dashboard-header">
+				<h1>Linea</h1>
+				<p>Website Monitoring Dashboard</p>
+			</header>
 
-			<section>
-				<h2>Your Websites</h2>
+			<section className="dashboard-section">
+				<div className="section-header">
+					<div>
+						<h2>Your Websites</h2>
+						<p>Monitor availability and response status.</p>
+					</div>
 
-				{loading ? (
-					<p>Loading...</p>
-				) : websites.length === 0 ? (
-					<p>You haven't added any websites yet.</p>
-				) : (
-					websites.map((website) => (
-						<div key={website.id}>
-							<p>{website.url}</p>
-						</div>
-					))
-				)}
+					<span className="counter">{websites.length}</span>
+				</div>
+
+				<div className="website-list">
+					{loading ? (
+						<p className="empty-state">Loading...</p>
+					) : websites.length === 0 ? (
+						<p className="empty-state">You haven't added any websites yet.</p>
+					) : (
+						websites.map((website) => (
+							<div className="website-card" key={website.id}>
+								<div className="website-info">
+									<span className="status-dot" />
+									<p>{website.url}</p>
+								</div>
+
+								<span className="website-interval">Every {website.intervalSeconds}s</span>
+							</div>
+						))
+					)}
+				</div>
 
 				<AddWebsiteForm onWebsiteAdded={getWebsites} />
 			</section>

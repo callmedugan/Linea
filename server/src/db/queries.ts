@@ -6,8 +6,14 @@ import { sessions, tokens, websites } from "./schema.js";
 //
 /* ========================================================================= */
 
-/**inserts new website record and throws if insert fails */
+const MAX_ALERTS = 8;
+
+/**inserts new website record and throws if insert fails or email has too many alerts */
 export async function insertWebsiteInDb(email: string, url: string) {
+	//count entries
+	const websiteCount = await db.$count(websites, eq(websites.email, email));
+	if (websiteCount >= MAX_ALERTS) throw new Error(`Max number of alerts per account is: ${MAX_ALERTS}`);
+	//insert
 	await db.insert(websites).values({
 		email,
 		url,

@@ -34,19 +34,29 @@ export default function VerifyPage() {
 	}
 
 	return (
-		<main>
-			<h1>Linea</h1>
-			<h2>Confirm Login</h2>
+		<main className="auth-page">
+			<div className="auth-container">
+				<header className="auth-header">
+					<h1>Linea</h1>
+					<p>Simple website monitoring.</p>
+				</header>
 
-			{token ? (
-				<button onClick={handleVerify} disabled={loading}>
-					{loading ? "Verifying..." : "Log in to Linea"}
-				</button>
-			) : (
-				<p>Missing login token.</p>
-			)}
+				<section className="auth-card">
+					<div className="auth-card-header">
+						<h2>Confirm login</h2>
 
-			{error && <p>{error}</p>}
+						{token ? <p>Continue to your monitoring dashboard.</p> : <p>This login link is missing its token.</p>}
+					</div>
+
+					{token && (
+						<button className="auth-button" onClick={handleVerify} disabled={loading}>
+							{loading ? "Verifying..." : "Log in to Linea"}
+						</button>
+					)}
+
+					{error && <p className="form-error">{error}</p>}
+				</section>
+			</div>
 		</main>
 	);
 }

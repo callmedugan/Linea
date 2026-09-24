@@ -35,21 +35,49 @@ export default function LoginPage() {
 	}
 
 	return (
-		<main>
-			<h1>Linea</h1>
-			{success ? success && <p>Check your inbox for a login link. You may close this tab.</p> : <p>Enter your email to get started.</p>}
+		<main className="auth-page">
+			<div className="auth-container">
+				<header className="auth-header">
+					<h1>Linea</h1>
+					<p>Simple website monitoring.</p>
+				</header>
 
-			{!success && (
-				<form onSubmit={handleSubmit}>
-					<input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
+				<section className="auth-card">
+					{success ? (
+						<div className="auth-message">
+							<h2>Check your inbox</h2>
+							<p>We sent you a login link. You may close this tab.</p>
+						</div>
+					) : (
+						<>
+							<div className="auth-card-header">
+								<h2>Log in</h2>
+								<p>Enter your email to get started.</p>
+							</div>
 
-					<button type="submit" disabled={loading}>
-						{loading ? "Sending..." : "Continue with Email"}
-					</button>
-				</form>
-			)}
+							<form className="auth-form" onSubmit={handleSubmit}>
+								<label htmlFor="email">Email</label>
 
-			{error && <p>{error}</p>}
+								<input
+									id="email"
+									type="email"
+									placeholder="you@example.com"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									required
+									disabled={loading}
+								/>
+
+								<button type="submit" disabled={loading}>
+									{loading ? "Sending..." : "Continue with Email"}
+								</button>
+							</form>
+						</>
+					)}
+
+					{error && <p className="form-error">{error}</p>}
+				</section>
+			</div>
 		</main>
 	);
 }
