@@ -1,0 +1,14 @@
+{
+	"name": "@linea/shared",
+	"version": "1.0.0",
+	"type": "module",
+	"exports": {
+		"./db/schema": {
+			"types": "./dist/db/schema.d.ts",
+			"import": "./dist/db/schema.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc"
+	}
+}

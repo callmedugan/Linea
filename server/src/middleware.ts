@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from "express";
 import rateLimit from "express-rate-limit";
 import { getSessionFromDb } from "./db/queries.js";
-import type { sessions } from "./db/schema.js";
+import type { sessions } from "@linea/shared/db/schema";
 
 //for total requests
 export const middlewareApiLimiter = rateLimit({

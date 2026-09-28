@@ -1,6 +1,6 @@
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { db } from "./index.js";
-import { sessions, tokens, websites } from "./schema.js";
+import { sessions, tokens, websites } from "@linea/shared/db/schema";
 
 /* ========================================================================= */
 //
