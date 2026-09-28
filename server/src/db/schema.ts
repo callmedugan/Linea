@@ -6,11 +6,17 @@ export const websites = snakeCase.table(
 		id: uuid().primaryKey().defaultRandom(),
 		url: text().notNull(),
 		email: text().notNull(),
+		//timestamps
 		intervalSeconds: integer().notNull().default(30),
 		nextCheckAt: timestamp().notNull().defaultNow(),
 		createdAt: timestamp().notNull().defaultNow(),
+		//worker claims
 		claimId: uuid(),
 		claimedAt: timestamp(),
+		//status
+		expectedStatus: integer().notNull().default(200),
+		lastStatus: integer(),
+		responseTimeMs: integer(),
 	},
 	(table) => [unique("websites_url_email_unique").on(table.url, table.email)],
 );

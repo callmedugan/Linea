@@ -5,7 +5,9 @@
 	"scripts": {
 		"build": "tsc",
 		"start": "node dist/index.js",
-		"dev": "tsx watch src/index.ts"
+		"dev": "tsx watch src/index.ts",
+		"test": "npx tsx src/testing/test.ts",
+		"test-server": "npx tsx src/testing/testServer.ts"
 	},
 	"dependencies": {
 		"dotenv": "^18.0.4"

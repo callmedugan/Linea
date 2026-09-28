@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { checkWebsite } from "../checkWebsite.js";
+import { validateUrl } from "../validateURL.js";
 import z from "zod";
 import sendEmail from "../email/email.js";
 import { getTokens, hashToken } from "../auth/auth.js";
@@ -19,18 +19,7 @@ const EMAIL_LINK_EXPIRATION_MINS = 15;
 //                        websites
 /* ========================================================================= */
 
-// export async function getWebsiteStatus(req: Request, res: Response) {
-// 	//query params
-// 	const url = req.query.url;
-// 	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
-
-// 	//check site
-// 	const result = await checkWebsite(url);
-
-// 	//return 200 or 400 based off success and the data
-// 	return res.status(result.success ? 200 : 400).json(result);
-// }
-
+/**takes user input, validates format, and stores in db - no fetch requests are made */
 export async function addWebsiteAlert(req: Request, res: Response) {
 	//check session
 	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
@@ -39,15 +28,15 @@ export async function addWebsiteAlert(req: Request, res: Response) {
 	const url = req.query.url;
 	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
 
-	//check user provided site
-	const website = await checkWebsite(url);
-	if (!website.success) return res.status(400).json({ error: website.error });
+	//check user provided site syntax and protocol/port
+	const validURL = validateUrl(url).toString();
+	if (!validURL) return res.status(400).json({ error: "Invalid URL" });
 
 	//add to db
-	await insertWebsiteInDb(req.session.email, website.data.url);
+	await insertWebsiteInDb(req.session.email, validURL);
 
 	//return 200 for success
-	return res.status(200).json(website);
+	return res.status(200).json(validURL);
 }
 
 const websiteIdSchema = z.object({
