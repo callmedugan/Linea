@@ -5,9 +5,9 @@ import { getSessionFromDb } from "./db/queries.js";
 import type { sessions } from "./db/schema.js";
 
 //for total requests
-export const middlewareApiLimiter = rateLimit({
+export const middlewareGlobalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, //15 mins
-	limit: 300,
+	limit: 10_000,
 	// All requests share the same counter
 	keyGenerator: () => "global",
 
@@ -22,15 +22,27 @@ export const middlewareApiLimiter = rateLimit({
 //per IP basis
 export const middlewareIPLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
-	limit: 20,
+	limit: 500,
 	standardHeaders: "draft-8",
 	legacyHeaders: false,
 	message: {
-		error: "Too many website submissions. Try again later.",
+		error: "Too many requests. Try again later.",
 	},
 });
 
-/**limits to 5 requests per 15 minutes for email send requests */
+/**for worker routes - limits IP for runaway workers */
+export const middlewareWorkerLimiter = rateLimit({
+	windowMs: 15 * 60 * 1000, //15 mins
+	limit: 5000,
+	message: {
+		error: "Service is temporarily busy. Try again later.",
+	},
+
+	standardHeaders: "draft-8",
+	legacyHeaders: false,
+});
+
+/** limits magic-link email sends */
 export const middlewareSendEmailLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	limit: 5,
@@ -41,14 +53,14 @@ export const middlewareSendEmailLimiter = rateLimit({
 	},
 });
 
-/**limits to 5 requests per 15 minutes for email links */
+/** limits magic-link verification attempts */
 export const middlewareEmailLinkLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
-	limit: 5,
+	limit: 20,
 	standardHeaders: "draft-8",
 	legacyHeaders: false,
 	message: {
-		error: "Too many email requests. Try again later.",
+		error: "Too many login attempts. Try again later.",
 	},
 });
 

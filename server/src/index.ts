@@ -1,12 +1,14 @@
 import express from "express";
 import path from "path";
 import {
-	middlewareApiLimiter,
+	middlewareGlobalLimiter,
 	middlewareSendEmailLimiter,
 	middlewareIPLimiter,
 	noSniffHeader,
 	middlewareRequireSession,
 	middlewareRequireAPIKey,
+	middlewareWorkerLimiter,
+	middlewareEmailLinkLimiter,
 } from "./middleware.js";
 import { handlerError } from "./handlers/error.js";
 import "dotenv/config";
@@ -14,9 +16,10 @@ import {
 	addWebsiteAlert,
 	deleteWebsiteAlert,
 	getWebsiteAlerts,
-	getWorkerJobs,
+	getWorkerJobs as claimWorkerJobs,
 	sendLoginEmail,
 	verifyLogin as verifyEmailLink,
+	submitWorkerJobs,
 } from "./handlers/handlers.js";
 import cookieParser from "cookie-parser";
 
@@ -24,6 +27,10 @@ const app = express();
 
 //used to serve static files - process.cwd will be set in the start script
 const clientPath = path.resolve(process.cwd(), "../client/dist");
+
+/* ========================================================================= */
+//                        routing
+/* ========================================================================= */
 
 // allow json and limit to 100kb of data
 app.use(express.json({ limit: "100kb" }));
@@ -34,28 +41,25 @@ app.use(cookieParser());
 // nosniff header
 app.use(noSniffHeader);
 
-// limit overall traffic
-app.use(middlewareApiLimiter, middlewareIPLimiter);
-
 /* ========================================================================= */
 //                        handlers
 /* ========================================================================= */
 
-app.get("/api/health", (req, res) => {
-	res.json({ status: "ok" });
-});
-
 //auth
+app.use("/api/login", middlewareGlobalLimiter, middlewareIPLimiter);
 app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail); //send email to login
-app.post("/api/login/verify", verifyEmailLink); //called from the link given to the user's email
+app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink); //called from the link given to the user's email
 
 //websites
+app.use("/api/websites", middlewareGlobalLimiter, middlewareIPLimiter);
 app.get("/api/websites", middlewareRequireSession, getWebsiteAlerts); //get alerts for session email
 app.post("/api/websites", middlewareRequireSession, addWebsiteAlert); //submit website to watch
 app.delete("/api/websites/:id", middlewareRequireSession, deleteWebsiteAlert); //removes website from watchlist
 
 //worker
-app.post("/api/worker/jobs/claim", middlewareRequireAPIKey, getWorkerJobs); //gets items from work queue to process
+app.use("/api/worker", middlewareRequireAPIKey, middlewareWorkerLimiter);
+app.post("/api/worker/jobs/claim", claimWorkerJobs); //gets items from work queue to process
+app.post("/api/worker/jobs/submit", submitWorkerJobs); //sends back items to work queue
 
 /* ========================================================================= */
 //                   Error Handling Middleware - must go last

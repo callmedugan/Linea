@@ -6,12 +6,14 @@ import { getTokens, hashToken } from "../auth/auth.js";
 import {
 	consumeTokenInDb,
 	deleteWebsiteInDb,
-	getWebsiteBatch,
+	getWebsiteBatchFromDb,
 	getWebsitesFromDb,
 	insertNewSessionInDb,
 	insertNewTokenInDb,
 	insertWebsiteInDb,
+	submitWebsiteBatchToDb,
 } from "../db/queries.js";
+import { websiteBatchSchema } from "../db/schema.js";
 
 const EMAIL_LINK_EXPIRATION_MINS = 15;
 
@@ -147,13 +149,28 @@ export async function verifyLogin(req: Request, res: Response) {
 //                        worker
 /* ========================================================================= */
 
-const jobSize = 5;
-
 /**retrives jobs for worker*/
 export async function getWorkerJobs(req: Request, res: Response) {
 	//get websites from db
-	const result = await getWebsiteBatch(jobSize);
+	const result = await getWebsiteBatchFromDb();
 
 	//return 200 for success
 	return res.status(200).json(result);
+}
+
+/**submit jobs from worker*/
+export async function submitWorkerJobs(req: Request, res: Response) {
+	//read body
+	const submittedJobs = websiteBatchSchema.safeParse(req.body);
+	if (!submittedJobs.success) return res.status(400).json({ error: submittedJobs.error.issues });
+
+	//submit websites to db
+	const websites = submittedJobs.data;
+	await submitWebsiteBatchToDb(websites);
+
+	//claim more jobs for the worker if they exist
+	const moreJobs = await getWebsiteBatchFromDb();
+
+	//return 200 for success
+	return res.status(200).json(moreJobs);
 }

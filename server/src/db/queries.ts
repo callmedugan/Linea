@@ -1,6 +1,6 @@
-import { and, asc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "./index.js";
-import { sessions, tokens, websites } from "./schema.js";
+import { sessions, tokens, websites, type Website } from "./schema.js";
 
 /* ========================================================================= */
 //                        websites
@@ -40,7 +40,7 @@ export async function getWebsitesFromDb(email: string) {
 /* ========================================================================= */
 
 /**gets batch of websites for worker to fetch*/
-export async function getWebsiteBatch(size: number = 5, claimTimeoutSeconds: number = 60) {
+export async function getWebsiteBatchFromDb(size: number = 5, claimTimeoutSeconds: number = 60): Promise<Website[]> {
 	//create claim number for the worker - this will be matched up when sending back the results
 	//to make sure that the most recent update is used
 	const claimId = crypto.randomUUID();
@@ -64,9 +64,44 @@ export async function getWebsiteBatch(size: number = 5, claimTimeoutSeconds: num
 	return db
 		.with(batch)
 		.update(websites)
-		.set({ claimedAt: now, claimId })
+		.set({ claimedAt: now, claimId }) //set claimedAt and claimId to generated id to match up later
 		.where(inArray(websites.id, db.select({ id: batch.id }).from(batch)))
 		.returning();
+}
+
+/**gets batch of websites for worker to fetch*/
+export async function submitWebsiteBatchToDb(websites: Website[]): Promise<void> {
+	if (websites.length === 0) return;
+
+	//create virtual table using sql builder which parameterizes the data - not passed as string literals
+	const values = sql.join(
+		websites.map(
+			(website) => sql`(
+				${website.id}::uuid,
+				${website.claimId}::uuid,
+				${website.lastStatus}::integer,
+				${website.responseTimeMs}::integer
+			)`,
+		),
+		sql`, `,
+	);
+
+	//this insane query updates all rows for the submitted sites only if the claim id matches
+	await db.execute(sql`
+		UPDATE websites AS w
+		SET
+			last_status = v.last_status,
+			response_time_ms = v.response_time_ms,
+			next_check_at = NOW() + (w.interval_seconds * INTERVAL '1 second'),
+			claimed_at = NULL,
+			claim_id = NULL
+		FROM (
+			VALUES ${values}
+		) AS v(id, claim_id, last_status, response_time_ms)
+		WHERE
+			w.id = v.id
+			AND w.claim_id = v.claim_id
+	`);
 }
 
 /* ========================================================================= */

@@ -1,32 +1,5 @@
 import "dotenv/config";
-import { z } from "zod";
-import { getJobs, workJob } from "./jobHandlers.js";
-
-/* ========================================================================= */
-//                        types
-/* ========================================================================= */
-
-export const jobSchema = z.object({
-	id: z.uuid(),
-	url: z.url(),
-	email: z.email(),
-	//timestamps
-	intervalSeconds: z.number().int().positive(),
-	nextCheckAt: z.coerce.date(),
-	createdAt: z.coerce.date(),
-	//worker claims
-	claimId: z.uuid(),
-	claimedAt: z.coerce.date(),
-	//status
-	responseTimeMs: z.number().int().nonnegative().nullable(),
-	expectedStatus: z.number().int(),
-	lastStatus: z.number().int().nullable(),
-});
-
-export const jobBatchSchema = z.array(jobSchema);
-
-export type Job = z.infer<typeof jobSchema>;
-export type JobBatch = z.infer<typeof jobBatchSchema>;
+import { claimJobs, JobBatch, submitWorkerJobs, workJob } from "./jobHandlers.js";
 
 /* ========================================================================= */
 //                        functions
@@ -40,20 +13,31 @@ function sleep(ms: number) {
 //                        main loop
 /* ========================================================================= */
 
+const WORKER_REQUEST_INTERVAL_SECS = 10;
+
 async function run() {
 	if (!process.env.SERVER_URL || !process.env.API_KEY) throw new Error("Missing worker environment variables");
 
+	//store jobs outside for persistance and claim on awake
+	let jobs: JobBatch = await claimJobs();
+
 	//loop
 	while (true) {
-		const jobs: JobBatch = await getJobs();
-
-		for (const job of jobs) {
-			await workJob(job);
+		//if no jobs, wait and try to claim again
+		while (jobs.length === 0) {
+			await sleep(WORKER_REQUEST_INTERVAL_SECS * 1000);
+			jobs = await claimJobs();
 		}
 
+		//update concurrently - make sure not to throw inside promise.all - also need to not overwhelm the network when running concurrently
+		//stick to 10 or so tops for now
+		await Promise.all(jobs.map(workJob));
+
+		//logging
 		console.log(jobs);
 
-		await sleep(10000);
+		//send updated jobs to server and receive next claimed batch
+		jobs = await submitWorkerJobs(jobs);
 	}
 }
 

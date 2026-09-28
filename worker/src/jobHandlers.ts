@@ -1,8 +1,45 @@
 import { checkWebsite } from "./checkWebsite.js";
-import { Job, JobBatch, jobBatchSchema } from "./index.js";
+import { z } from "zod";
+
+/* ========================================================================= */
+//                        types
+/* ========================================================================= */
+
+//job claims
+export const jobSchema = z.object({
+	id: z.uuid(),
+	url: z.url(),
+	email: z.email(),
+	//timestamps
+	intervalSeconds: z.number().int().positive(),
+	nextCheckAt: z.coerce.date(),
+	createdAt: z.coerce.date(),
+	//worker claims
+	claimId: z.uuid(),
+	claimedAt: z.coerce.date(),
+	//status
+	responseTimeMs: z.number().int().nonnegative().nullable(),
+	expectedStatus: z.number().int(),
+	lastStatus: z.number().int().nullable(),
+});
+
+export const jobBatchSchema = z.array(jobSchema);
+
+export type Job = z.infer<typeof jobSchema>;
+export type JobBatch = z.infer<typeof jobBatchSchema>;
+
+//job claim results
+export const jobResultSchema = z.object({
+	jobsAvailable: z.boolean(),
+});
+export type JobResult = z.infer<typeof jobResultSchema>;
+
+/* ========================================================================= */
+//                        functions
+/* ========================================================================= */
 
 /**fetches a job batch */
-export async function getJobs(): Promise<JobBatch> {
+export async function claimJobs(): Promise<JobBatch> {
 	//fetch
 	const response = await fetch(`${process.env.SERVER_URL}/api/worker/jobs/claim`, {
 		method: "POST",
@@ -24,6 +61,7 @@ export async function workJob(job: Job) {
 	//fetch
 	const result = await checkWebsite(job.url);
 
+	//just update each job with the status and res time with the result, server will handle the rest
 	if (result.success) {
 		job.lastStatus = result.data.statusCode;
 		job.responseTimeMs = result.data.responseTime;
@@ -31,4 +69,26 @@ export async function workJob(job: Job) {
 		job.lastStatus = null;
 		job.responseTimeMs = null;
 	}
+}
+
+/**submits worker jobs and returns if more jobs are available immediately for the worker */
+export async function submitWorkerJobs(jobs: JobBatch): Promise<JobBatch> {
+	const response = await fetch(`${process.env.SERVER_URL}/api/worker/jobs/submit`, {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			Authorization: `Bearer ${process.env.API_KEY}`,
+		},
+		body: JSON.stringify(jobs),
+	});
+	if (!response.ok) {
+		const error = await response.text();
+		throw new Error(`Failed to submit batch: ${response.status} - ${error}`);
+	}
+
+	//if more jobs are available
+	const data = await response.json();
+	const moreJobs = jobBatchSchema.parse(data);
+
+	return moreJobs;
 }

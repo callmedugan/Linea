@@ -1,4 +1,10 @@
 import { uuid, text, integer, timestamp, unique, snakeCase } from "drizzle-orm/pg-core";
+import { createSelectSchema } from "drizzle-orm/zod";
+import z from "zod";
+
+/* ========================================================================= */
+//                        websites
+/* ========================================================================= */
 
 export const websites = snakeCase.table(
 	"websites",
@@ -8,11 +14,11 @@ export const websites = snakeCase.table(
 		email: text().notNull(),
 		//timestamps
 		intervalSeconds: integer().notNull().default(30),
-		nextCheckAt: timestamp().notNull().defaultNow(),
-		createdAt: timestamp().notNull().defaultNow(),
+		nextCheckAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+		createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 		//worker claims
 		claimId: uuid(),
-		claimedAt: timestamp(),
+		claimedAt: timestamp({ withTimezone: true }),
 		//status
 		expectedStatus: integer().notNull().default(200),
 		lastStatus: integer(),
@@ -20,6 +26,19 @@ export const websites = snakeCase.table(
 	},
 	(table) => [unique("websites_url_email_unique").on(table.url, table.email)],
 );
+
+//types
+export type Website = typeof websites.$inferSelect;
+export const websiteSchema = createSelectSchema(websites, {
+	nextCheckAt: z.coerce.date(), //need to coerce all the dates because json has no date type. will throw an error on submitting
+	createdAt: z.coerce.date(),
+	claimedAt: z.coerce.date().nullable(),
+});
+export const websiteBatchSchema = z.array(websiteSchema);
+
+/* ========================================================================= */
+//                        auth
+/* ========================================================================= */
 
 export const tokens = snakeCase.table("tokens", {
 	id: uuid().primaryKey().defaultRandom(),
