@@ -69,9 +69,18 @@ export async function getWebsiteBatchFromDb(size: number = 5, claimTimeoutSecond
 		.returning();
 }
 
-/**gets batch of websites for worker to fetch*/
-export async function submitWebsiteBatchToDb(websites: Website[]): Promise<void> {
-	if (websites.length === 0) return;
+export type SubmitResult = {
+	id: string;
+	email: string;
+	url: string;
+	expectedStatus: number;
+	oldStatus: number | null;
+	newStatus: number | null;
+};
+
+/**submits batch of websites from worker*/
+export async function submitWebsiteBatchToDb(websites: Website[]): Promise<SubmitResult[]> {
+	if (websites.length === 0) return [];
 
 	//create virtual table using sql builder which parameterizes the data - not passed as string literals
 	const values = sql.join(
@@ -87,21 +96,64 @@ export async function submitWebsiteBatchToDb(websites: Website[]): Promise<void>
 	);
 
 	//this insane query updates all rows for the submitted sites only if the claim id matches
-	await db.execute(sql`
+	const result = await db.execute<{
+		id: string;
+		email: string;
+		url: string;
+		expectedStatus: number;
+		oldStatus: number | null;
+		newStatus: number | null;
+	}>(sql`
+		--create a temporary table from the worker's submitted results
+		WITH submitted(id, claim_id, last_status, response_time_ms) AS (
+			VALUES ${values}
+		),
+
+		--save the current status before updating
+		--also verify that the worker still owns the claim
+		old AS (
+			SELECT
+				w.id,
+				w.last_status AS old_status
+			FROM websites AS w
+			INNER JOIN submitted AS s
+				ON w.id = s.id
+				AND w.claim_id = s.claim_id
+		)
+
+		--update each website with the new worker results
 		UPDATE websites AS w
 		SET
-			last_status = v.last_status,
-			response_time_ms = v.response_time_ms,
+			last_status = s.last_status,
+			response_time_ms = s.response_time_ms,
+
+			--schedule the website's next check based on its interval
 			next_check_at = NOW() + (w.interval_seconds * INTERVAL '1 second'),
+
+			--release the job so it can be claimed again when next_check_at is reached
 			claimed_at = NULL,
 			claim_id = NULL
-		FROM (
-			VALUES ${values}
-		) AS v(id, claim_id, last_status, response_time_ms)
+
+		FROM submitted AS s, old
 		WHERE
-			w.id = v.id
-			AND w.claim_id = v.claim_id
+			--match the submitted result to the database record
+			w.id = s.id
+			AND w.id = old.id
+
+			--only accept the result if this worker still owns the claim
+			AND w.claim_id = s.claim_id
+
+		--return both statuses so the server can detect status changes and send alerts
+		RETURNING
+			w.id,
+			w.email,
+			w.url,
+			w.expected_status AS "expectedStatus",
+			old.old_status AS "oldStatus",
+			w.last_status AS "newStatus"
 	`);
+
+	return result.rows;
 }
 
 /* ========================================================================= */

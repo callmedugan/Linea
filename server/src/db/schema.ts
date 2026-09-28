@@ -21,7 +21,7 @@ export const websites = snakeCase.table(
 		claimedAt: timestamp({ withTimezone: true }),
 		//status
 		expectedStatus: integer().notNull().default(200),
-		lastStatus: integer(),
+		lastStatus: integer().default(0), //default to 0 for not visited so null can mean no response was received
 		responseTimeMs: integer(),
 	},
 	(table) => [unique("websites_url_email_unique").on(table.url, table.email)],

@@ -1,7 +1,6 @@
 import type { Request, Response } from "express";
 import { validateUrl } from "../validateURL.js";
 import z from "zod";
-import sendEmail from "../email/email.js";
 import { getTokens, hashToken } from "../auth/auth.js";
 import {
 	consumeTokenInDb,
@@ -12,8 +11,10 @@ import {
 	insertNewTokenInDb,
 	insertWebsiteInDb,
 	submitWebsiteBatchToDb,
+	type SubmitResult,
 } from "../db/queries.js";
 import { websiteBatchSchema } from "../db/schema.js";
+import { sendLoginEmail, sendStatusAlertEmail } from "../email/email.js";
 
 const EMAIL_LINK_EXPIRATION_MINS = 15;
 
@@ -84,7 +85,7 @@ const emailSchema = z.object({
 });
 
 /**Sends email to user with token to log in. Creates entry in db for the token as well. */
-export async function sendLoginEmail(req: Request, res: Response) {
+export async function sendLoginEmailHandler(req: Request, res: Response) {
 	//try to parse provided email
 	const parse = emailSchema.safeParse(req.body);
 	if (!parse.success) return res.status(400).json({ error: "Invalid email" });
@@ -103,7 +104,7 @@ export async function sendLoginEmail(req: Request, res: Response) {
 
 	//send email
 	try {
-		const result = await sendEmail("login", email, raw);
+		const result = await sendLoginEmail(email, raw);
 		if (!result) return res.status(500).json({ error: "Failed to send email" });
 		//return
 		return res.status(200).json({ message: "Email sent" });
@@ -164,13 +165,49 @@ export async function submitWorkerJobs(req: Request, res: Response) {
 	const submittedJobs = websiteBatchSchema.safeParse(req.body);
 	if (!submittedJobs.success) return res.status(400).json({ error: submittedJobs.error.issues });
 
-	//submit websites to db
+	//submit websites to db and get back the results
 	const websites = submittedJobs.data;
-	await submitWebsiteBatchToDb(websites);
+	const results = await submitWebsiteBatchToDb(websites);
+
+	//check results to determine if alerts need to be sent
+	await checkSubmitResults(results);
 
 	//claim more jobs for the worker if they exist
 	const moreJobs = await getWebsiteBatchFromDb();
 
 	//return 200 for success
 	return res.status(200).json(moreJobs);
+}
+
+/**check results to determine if alerts need to be sent*/
+async function checkSubmitResults(results: SubmitResult[]) {
+	for (const result of results) {
+		//skip new checks
+		if (result.oldStatus === 0) continue;
+
+		//compare wasUp and isUp
+		const wasUp = result.oldStatus === result.expectedStatus;
+		const isUp = result.newStatus === result.expectedStatus;
+
+		//repeating code, idc
+		if (wasUp && !isUp) {
+			try {
+				//send email and log errors, do not throw/catch
+				const sent = await sendStatusAlertEmail(result.email, result.url, "down", result.newStatus ?? undefined);
+				if (!sent) console.error(`Failed to send alert for ${result.url}`);
+			} catch (error) {
+				console.error(`Error sending alert for ${result.url}:`, error);
+			}
+		}
+
+		if (!wasUp && isUp) {
+			try {
+				//send email and log errors, do not throw/catch
+				const sent = await sendStatusAlertEmail(result.email, result.url, "up", result.newStatus ?? undefined);
+				if (!sent) console.error(`Failed to send alert for ${result.url}`);
+			} catch (error) {
+				console.error(`Error sending alert for ${result.url}:`, error);
+			}
+		}
+	}
 }

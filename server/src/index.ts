@@ -17,7 +17,7 @@ import {
 	deleteWebsiteAlert,
 	getWebsiteAlerts,
 	getWorkerJobs as claimWorkerJobs,
-	sendLoginEmail,
+	sendLoginEmailHandler,
 	verifyLogin as verifyEmailLink,
 	submitWorkerJobs,
 } from "./handlers/handlers.js";
@@ -47,7 +47,7 @@ app.use(noSniffHeader);
 
 //auth
 app.use("/api/login", middlewareGlobalLimiter, middlewareIPLimiter);
-app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmail); //send email to login
+app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmailHandler); //send email to login
 app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink); //called from the link given to the user's email
 
 //websites
