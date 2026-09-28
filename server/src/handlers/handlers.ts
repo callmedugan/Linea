@@ -6,6 +6,7 @@ import { getTokens, hashToken } from "../auth/auth.js";
 import {
 	consumeTokenInDb,
 	deleteWebsiteInDb,
+	getWebsiteBatch,
 	getWebsitesFromDb,
 	insertNewSessionInDb,
 	insertNewTokenInDb,
@@ -151,4 +152,19 @@ export async function verifyLogin(req: Request, res: Response) {
 
 	//redirect to the dashboard
 	return res.redirect("/dashboard");
+}
+
+/* ========================================================================= */
+//                        worker
+/* ========================================================================= */
+
+const jobSize = 5;
+
+/**retrives jobs for worker*/
+export async function getWorkerJobs(req: Request, res: Response) {
+	//get websites from db
+	const result = await getWebsiteBatch(jobSize);
+
+	//return 200 for success
+	return res.status(200).json(result);
 }

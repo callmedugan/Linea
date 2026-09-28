@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
+import crypto from "node:crypto";
 import rateLimit from "express-rate-limit";
 import { getSessionFromDb } from "./db/queries.js";
-import type { sessions } from "@linea/shared/db/schema";
+import type { sessions } from "./db/schema.js";
 
 //for total requests
 export const middlewareApiLimiter = rateLimit({
@@ -77,5 +78,26 @@ export async function middlewareRequireSession(req: Request, res: Response, next
 
 	//attach session to req
 	req.session = session;
+	next();
+}
+
+/** used for routes that require an api key - meant to be used by worker - does not expose timing */
+export async function middlewareRequireAPIKey(req: Request, res: Response, next: NextFunction) {
+	//get auth header
+	const authHeader = req.get("Authorization");
+	if (authHeader === undefined || !authHeader.startsWith("Bearer ")) return res.sendStatus(401);
+
+	//get provided and expected keys to compare
+	const providedKey = authHeader.slice(7);
+	const expectedKey = process.env.API_KEY;
+	if (!expectedKey) throw new Error("API_KEY is not configured");
+
+	//create buffers
+	const providedBuffer = Buffer.from(providedKey);
+	const expectedBuffer = Buffer.from(expectedKey);
+
+	//compare using timing safe
+	if (providedBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(providedBuffer, expectedBuffer)) return res.sendStatus(401);
+
 	next();
 }

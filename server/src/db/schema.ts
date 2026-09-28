@@ -9,6 +9,8 @@ export const websites = snakeCase.table(
 		intervalSeconds: integer().notNull().default(30),
 		nextCheckAt: timestamp().notNull().defaultNow(),
 		createdAt: timestamp().notNull().defaultNow(),
+		claimId: uuid(),
+		claimedAt: timestamp(),
 	},
 	(table) => [unique("websites_url_email_unique").on(table.url, table.email)],
 );

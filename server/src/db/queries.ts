@@ -1,9 +1,9 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, asc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import { db } from "./index.js";
-import { sessions, tokens, websites } from "@linea/shared/db/schema";
+import { sessions, tokens, websites } from "./schema.js";
 
 /* ========================================================================= */
-//
+//                        websites
 /* ========================================================================= */
 
 const MAX_ALERTS = 8;
@@ -33,6 +33,40 @@ export async function deleteWebsiteInDb(email: string, id: string) {
 export async function getWebsitesFromDb(email: string) {
 	const result = db.select().from(websites).where(eq(websites.email, email));
 	return result;
+}
+
+/* ========================================================================= */
+//                        worker
+/* ========================================================================= */
+
+/**gets batch of websites for worker to fetch*/
+export async function getWebsiteBatch(size: number = 5, claimTimeoutSeconds: number = 60) {
+	//create claim number for the worker - this will be matched up when sending back the results
+	//to make sure that the most recent update is used
+	const claimId = crypto.randomUUID();
+
+	//get claim cutoff for when a site should be retried
+	const claimCutoff = new Date(Date.now() - claimTimeoutSeconds * 1000);
+	const now = new Date();
+
+	//create a cte that gets matching jobs, limiting by the size and eligible for claiming
+	const batch = db.$with("batch").as(
+		db
+			.select({ id: websites.id })
+			.from(websites)
+			.where(and(lte(websites.nextCheckAt, now), or(isNull(websites.claimedAt), lte(websites.claimedAt, claimCutoff))))
+			.orderBy(asc(websites.nextCheckAt))
+			.limit(size)
+			.for("update", { skipLocked: true }), //lock the records to prevent double claiming
+	);
+
+	//using the cte, update the records that were selected all in one db call and return
+	return db
+		.with(batch)
+		.update(websites)
+		.set({ claimedAt: now, claimId })
+		.where(inArray(websites.id, db.select({ id: batch.id }).from(batch)))
+		.returning();
 }
 
 /* ========================================================================= */
