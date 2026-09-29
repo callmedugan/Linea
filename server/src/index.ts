@@ -41,6 +41,9 @@ app.use(cookieParser());
 // nosniff header
 app.use(noSniffHeader);
 
+//need this with reverse proxy https so that rate limiting wont complain
+app.set("trust proxy", 1);
+
 /* ========================================================================= */
 //                        handlers
 /* ========================================================================= */
