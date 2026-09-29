@@ -40,7 +40,7 @@ export default function DashboardPage() {
 	return (
 		<main className="dashboard">
 			<header className="dashboard-header">
-				<h1>Linea</h1>
+				<img src="/logo.png" alt="Linea" className="dashboard-logo" />
 			</header>
 
 			<section className="dashboard-section">

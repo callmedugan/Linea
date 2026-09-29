@@ -106,7 +106,10 @@ function getStatusAlertEmailCommand(email: string, url: string, status: "up" | "
 /**Sends email and returns whether or not it was successfully sent */
 export async function sendLoginEmail(email: string, tokenRaw: string): Promise<boolean> {
 	//create command
-	const loginUrl = new URL("/auth/verify", process.env.MAGIC_LINK_URL);
+	const loginUrl = new URL(
+		"/auth/verify",
+		process.env.NODE_ENV === "dev" || process.env.NODE_ENV === "development" ? process.env.DEV_MAGIC_LINK_URL : process.env.MAGIC_LINK_URL,
+	);
 	loginUrl.searchParams.set("token", tokenRaw);
 	const command = getLoginEmailCommand(email, loginUrl.toString());
 	//send

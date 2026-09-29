@@ -81,7 +81,7 @@ input {
 }
 
 .dashboard-header {
-	margin-bottom: 48px;
+	margin-bottom: 8px;
 }
 
 .dashboard-header h1 {
@@ -569,4 +569,10 @@ input {
 
 .add-website-controls button {
 	flex-shrink: 0;
+}
+
+.dashboard-logo {
+	width: 160px;
+	height: auto;
+	display: block;
 }
