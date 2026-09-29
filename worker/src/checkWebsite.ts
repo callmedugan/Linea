@@ -9,71 +9,20 @@ export type WebsiteStatus = {
 	error: CheckError | null;
 };
 
-type CheckResult =
-	| {
-			success: true;
-			data: WebsiteStatus;
-	  }
-	| {
-			success: false;
-			error: CheckError;
-	  };
-
 const TIMEOUT_MS = 5000;
 
-/**Checks website for given user input. Handles url validation. Returns success with data or error*/
-export async function checkWebsite(input: string): Promise<CheckResult> {
+/* ========================================================================= */
+//                        fetch
+/* ========================================================================= */
+
+/**Checks a stored website URL and returns its status*/
+export async function checkWebsite(urlString: string): Promise<WebsiteStatus> {
+	//start timer
 	const start = performance.now();
 
-	try {
-		//validate URL
-		const url = validateUrl(input);
-
-		//fetch using guarded-fetch
-		const result = await fetchValidatedUrl(url, start);
-
-		//return
-		return { success: true, data: result };
-	} catch (e) {
-		//fetch or validation failure
-		return { success: false, error: getCheckError(e) };
-	}
-}
-
-/* ========================================================================= */
-//                        internal functions
-/* ========================================================================= */
-
-/**
- * Validates url syntax and policy only and returns url obj
- */
-function validateUrl(input: string): URL {
-	//trim and parse as url
-	const url = new URL(input.trim());
-
-	//if not http(s)
-	if (!["http:", "https:"].includes(url.protocol)) throw new Error("Invalid protocol");
-
-	//dont allow creds
-	if (url.username || url.password) throw new Error("Credentials not allowed");
-
-	//dont allow any ports besides 80 and 443 for http(s) - use 3001 port for testing
-	if (url.port && !["80", "443"].includes(url.port)) throw new Error("Invalid port");
-
-	//url should have a hostname
-	if (!url.hostname) throw new Error("Invalid hostname");
-
-	url.hash = "";
-	return url;
-}
-
-/**
- * make an HTTP request without letting DNS choose a different ip address
- */
-async function fetchValidatedUrl(url: URL, start: number): Promise<WebsiteStatus> {
 	//this is the actual request using guarded-fetch
 	try {
-		const response = await guardedFetch(url.toString(), {
+		const response = await guardedFetch(urlString, {
 			method: "GET",
 			followRedirects: false,
 			timeoutMs: TIMEOUT_MS,
@@ -88,7 +37,7 @@ async function fetchValidatedUrl(url: URL, start: number): Promise<WebsiteStatus
 
 		//return
 		return {
-			url: url.toString(),
+			url: urlString,
 			statusCode,
 			responseTime,
 			error: null,
@@ -96,7 +45,7 @@ async function fetchValidatedUrl(url: URL, start: number): Promise<WebsiteStatus
 	} catch (e) {
 		//fetch failure
 		return {
-			url: url.toString(),
+			url: urlString,
 			statusCode: null,
 			responseTime: Math.round(performance.now() - start),
 			error: getCheckError(e),

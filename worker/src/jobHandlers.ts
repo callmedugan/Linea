@@ -63,15 +63,9 @@ export async function workJob(job: Job) {
 	const result = await checkWebsite(job.url);
 
 	//just update each job with the status and res time with the result, server will handle the rest
-	if (result.success) {
-		job.lastStatus = result.data.statusCode;
-		job.responseTimeMs = result.data.responseTime;
-		job.lastError = null;
-	} else {
-		job.lastStatus = null;
-		job.responseTimeMs = null;
-		job.lastError = result.error;
-	}
+	job.lastStatus = result.statusCode;
+	job.lastError = result.error;
+	job.responseTimeMs = result.responseTime;
 }
 
 /**submits worker jobs and returns if more jobs are available immediately for the worker */

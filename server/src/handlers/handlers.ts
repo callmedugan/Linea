@@ -16,6 +16,7 @@ import {
 import { websiteBatchSchema } from "../db/schema.js";
 import { sendLoginEmail, sendStatusAlertEmail } from "../email/email.js";
 import { EMAIL_LINK_EXPIRATION_MINS } from "../constants.js";
+import { error } from "node:console";
 
 /* ========================================================================= */
 //                        websites
@@ -40,7 +41,12 @@ export async function addWebsiteAlert(req: Request, res: Response) {
 	if (!validURL) return res.status(400).json({ error: "Invalid URL" });
 
 	//add to db
-	await insertWebsiteInDb(req.session.email, validURL, expectedStatus);
+	try {
+		await insertWebsiteInDb(req.session.email, validURL, expectedStatus);
+	} catch (e) {
+		if (e instanceof Error) return res.status(400).json({ error: e.message });
+		throw new Error("Something went wrong with the request");
+	}
 
 	//return 200 for success
 	return res.status(200).json(validURL);
