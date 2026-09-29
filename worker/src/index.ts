@@ -18,6 +18,11 @@ const WORKER_REQUEST_INTERVAL_SECS = 10;
 async function run() {
 	if (!process.env.SERVER_URL || !process.env.API_KEY) throw new Error("Missing worker environment variables");
 
+	while (true) {
+		console.log("Waiting");
+		await sleep(10000);
+	}
+
 	//store jobs outside for persistance and claim on awake
 	let jobs: JobBatch = await claimJobs();
 
