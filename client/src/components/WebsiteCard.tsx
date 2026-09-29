@@ -1,9 +1,19 @@
 import { useState } from "react";
-import type { Website } from "../types";
+import type { CheckError, Website } from "../types";
 
 type WebsiteCardProps = {
 	website: Website;
 	onDeleted: () => Promise<void>;
+};
+
+const errorMessages: Record<CheckError, string> = {
+	timeout: "Request timed out",
+	dns: "DNS lookup failed",
+	connection: "Connection failed",
+	tls: "TLS/certificate error",
+	blocked: "Blocked by security policy",
+	network: "Network request failed",
+	unknown: "Unknown error",
 };
 
 export default function WebsiteCard({ website, onDeleted }: WebsiteCardProps) {
@@ -54,6 +64,8 @@ export default function WebsiteCard({ website, onDeleted }: WebsiteCardProps) {
 								Status: {website.lastStatus} (expected {website.expectedStatus})
 							</span>
 						)}
+
+						{website.lastError !== null && <span className="website-check-error">Error: {errorMessages[website.lastError]}</span>}
 
 						{website.responseTimeMs !== null && <span>Response: {website.responseTimeMs} ms</span>}
 

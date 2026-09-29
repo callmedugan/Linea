@@ -89,6 +89,7 @@ export async function submitWebsiteBatchToDb(websites: Website[]): Promise<Submi
 				${website.id}::uuid,
 				${website.claimId}::uuid,
 				${website.lastStatus}::integer,
+				${website.lastError}::error_type,
 				${website.responseTimeMs}::integer
 			)`,
 		),
@@ -105,7 +106,7 @@ export async function submitWebsiteBatchToDb(websites: Website[]): Promise<Submi
 		newStatus: number | null;
 	}>(sql`
 		--create a temporary table from the worker's submitted results
-		WITH submitted(id, claim_id, last_status, response_time_ms) AS (
+		WITH submitted(id, claim_id, last_status, last_error, response_time_ms) AS (
 			VALUES ${values}
 		),
 
@@ -125,6 +126,7 @@ export async function submitWebsiteBatchToDb(websites: Website[]): Promise<Submi
 		UPDATE websites AS w
 		SET
 			last_status = s.last_status,
+			last_error = s.last_error,
 			response_time_ms = s.response_time_ms,
 
 			--schedule the website's next check based on its interval

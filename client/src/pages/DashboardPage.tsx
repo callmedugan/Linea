@@ -3,6 +3,8 @@ import AddWebsiteForm from "../components/AddWebsiteForm";
 import WebsiteCard from "../components/WebsiteCard";
 import type { Website } from "../types";
 
+const POLL_INTERVAL_MS = 10_000;
+
 export default function DashboardPage() {
 	const [websites, setWebsites] = useState<Website[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -25,7 +27,14 @@ export default function DashboardPage() {
 	}, []);
 
 	useEffect(() => {
+		//initial fetch
 		getWebsites();
+
+		//poll for updates
+		const interval = setInterval(getWebsites, POLL_INTERVAL_MS);
+
+		//stop polling when component unmounts
+		return () => clearInterval(interval);
 	}, [getWebsites]);
 
 	return (

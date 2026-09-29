@@ -4,15 +4,14 @@ type TestCase = {
 	name: string;
 	url: string;
 	expectedSuccess: boolean;
-	expectedIsUp?: boolean;
 	expectedStatus?: number;
 };
 
 const tests: TestCase[] = [
 	//valid websites
-	{ name: "Valid HTTPS", url: "https://example.com", expectedSuccess: true, expectedIsUp: true, expectedStatus: 200 },
-	{ name: "HTTP 404", url: "https://httpbin.org/status/404", expectedSuccess: true, expectedIsUp: false, expectedStatus: 404 },
-	{ name: "HTTP 500", url: "https://httpbin.org/status/500", expectedSuccess: true, expectedIsUp: false, expectedStatus: 500 },
+	{ name: "Valid HTTPS", url: "https://example.com", expectedSuccess: true, expectedStatus: 200 },
+	{ name: "HTTP 404", url: "https://httpbin.org/status/404", expectedSuccess: true, expectedStatus: 404 },
+	{ name: "HTTP 500", url: "https://httpbin.org/status/500", expectedSuccess: true, expectedStatus: 500 },
 
 	//url validation
 	{ name: "Invalid URL", url: "not-a-url", expectedSuccess: false },
@@ -79,7 +78,6 @@ const tests: TestCase[] = [
 		name: "HTTP redirect",
 		url: "https://httpbin.org/redirect/1",
 		expectedSuccess: true,
-		expectedIsUp: false,
 		expectedStatus: 302,
 	},
 
@@ -97,10 +95,6 @@ for (const test of tests) {
 	const result = await checkWebsite(test.url);
 
 	let success = result.success === test.expectedSuccess;
-
-	if (result.success && test.expectedIsUp !== undefined) {
-		success = success && result.data.isUp === test.expectedIsUp;
-	}
 
 	if (result.success && test.expectedStatus !== undefined) {
 		success = success && result.data.statusCode === test.expectedStatus;

@@ -21,6 +21,7 @@ export const jobSchema = z.object({
 	responseTimeMs: z.number().int().nonnegative().nullable(),
 	expectedStatus: z.number().int(),
 	lastStatus: z.number().int().nullable(),
+	lastError: z.enum(["timeout", "dns", "connection", "tls", "blocked", "network", "unknown"]).nullable(),
 });
 
 export const jobBatchSchema = z.array(jobSchema);
@@ -65,9 +66,11 @@ export async function workJob(job: Job) {
 	if (result.success) {
 		job.lastStatus = result.data.statusCode;
 		job.responseTimeMs = result.data.responseTime;
+		job.lastError = null;
 	} else {
 		job.lastStatus = null;
 		job.responseTimeMs = null;
+		job.lastError = result.error;
 	}
 }
 

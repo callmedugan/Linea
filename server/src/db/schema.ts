@@ -1,10 +1,12 @@
-import { uuid, text, integer, timestamp, unique, snakeCase } from "drizzle-orm/pg-core";
+import { uuid, text, integer, timestamp, unique, snakeCase, pgEnum } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-orm/zod";
 import z from "zod";
 
 /* ========================================================================= */
 //                        websites
 /* ========================================================================= */
+
+export const errorTypeEnum = pgEnum("error_type", ["timeout", "dns", "connection", "tls", "blocked", "network", "unknown"]);
 
 export const websites = snakeCase.table(
 	"websites",
@@ -23,6 +25,7 @@ export const websites = snakeCase.table(
 		expectedStatus: integer().notNull().default(200),
 		lastStatus: integer().default(0), //default to 0 for not visited so null can mean no response was received
 		responseTimeMs: integer(),
+		lastError: errorTypeEnum("last_error"),
 	},
 	(table) => [unique("websites_url_email_unique").on(table.url, table.email)],
 );
