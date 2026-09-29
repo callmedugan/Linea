@@ -31,7 +31,7 @@ export async function deleteWebsiteInDb(email: string, id: string) {
 
 /**gets all website alerts for given email*/
 export async function getWebsitesFromDb(email: string) {
-	const result = db.select().from(websites).where(eq(websites.email, email));
+	const result = db.select().from(websites).where(eq(websites.email, email)).orderBy(asc(websites.createdAt));
 	return result;
 }
 

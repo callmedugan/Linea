@@ -29,12 +29,12 @@ async function run() {
 			jobs = await claimJobs();
 		}
 
+		//logging
+		console.log(`[Worker] Processing ${jobs.length} jobs:\n${jobs.map((job) => job.url).join("\n")}`);
+
 		//update concurrently - make sure not to throw inside promise.all - also need to not overwhelm the network when running concurrently
 		//stick to 10 or so tops for now
 		await Promise.all(jobs.map(workJob));
-
-		//logging
-		console.log(jobs);
 
 		//send updated jobs to server and receive next claimed batch
 		jobs = await submitWorkerJobs(jobs);
