@@ -147,7 +147,7 @@ export async function verifyLogin(req: Request, res: Response) {
 	//create cookie
 	res.cookie("session", session.id, {
 		httpOnly: true, //not readable by js
-		secure: process.env.NODE_ENV === "production", //only sent over https in prod
+		secure: process.env.NODE_ENV !== "dev" && process.env.NODE_ENV !== "development", //only sent over https in prod
 		sameSite: "lax",
 		maxAge: session.expiresAt.getTime() - Date.now(), //same age as the session
 	});

@@ -81,6 +81,8 @@ app.get("/{*splat}", (_req, res) => {
 //error handler last
 app.use(handlerError);
 
-app.listen(process.env.PORT, () => {
-	console.log(`Server running at http://localhost:${process.env.PORT}`);
+//listen
+const PORT = Number(process.env.PORT) || 8080;
+app.listen(PORT, "127.0.0.1", () => {
+	console.log(`Server running at http://127.0.0.1:${PORT}`);
 });
