@@ -6,6 +6,7 @@ type AddWebsiteFormProps = {
 
 export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) {
 	const [url, setUrl] = useState("");
+	const [expectedStatus, setExpectedStatus] = useState(200);
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 
@@ -16,8 +17,15 @@ export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) 
 		setError("");
 
 		try {
-			const response = await fetch(`/api/websites?url=${encodeURIComponent(url)}`, {
+			const response = await fetch("/api/websites", {
 				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					url,
+					expectedStatus,
+				}),
 			});
 
 			if (!response.ok) {
@@ -26,6 +34,8 @@ export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) 
 			}
 
 			setUrl("");
+			setExpectedStatus(200);
+
 			await onWebsiteAdded();
 		} catch (error) {
 			setError(error instanceof Error ? error.message : "Failed to add website");
@@ -47,6 +57,19 @@ export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) 
 					placeholder="https://example.com"
 					required
 					disabled={loading}
+				/>
+
+				<input
+					id="expected-status"
+					type="number"
+					value={expectedStatus}
+					onChange={(event) => setExpectedStatus(event.target.valueAsNumber)}
+					min={100}
+					max={599}
+					placeholder="200"
+					required
+					disabled={loading}
+					aria-label="Expected status"
 				/>
 
 				<button type="submit" disabled={loading}>

@@ -526,3 +526,47 @@ input {
 	color: var(--danger);
 	font-size: 12px;
 }
+
+.website-status {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+
+.status-dot {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	flex-shrink: 0;
+}
+
+.status-up {
+	background: #22c55e;
+}
+
+.status-down {
+	background: #ef4444;
+}
+
+.status-pending {
+	background: #9ca3af;
+}
+.add-website-controls {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+}
+
+#website-url {
+	flex: 3;
+	min-width: 0;
+}
+
+#expected-status {
+	flex: 1;
+	min-width: 80px;
+}
+
+.add-website-controls button {
+	flex-shrink: 0;
+}

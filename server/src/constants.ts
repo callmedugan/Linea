@@ -1,0 +1,2 @@
+export const MAX_ALERTS_PER_EMAIL = 8;
+export const EMAIL_LINK_EXPIRATION_MINS = 15;

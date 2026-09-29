@@ -15,28 +15,32 @@ import {
 } from "../db/queries.js";
 import { websiteBatchSchema } from "../db/schema.js";
 import { sendLoginEmail, sendStatusAlertEmail } from "../email/email.js";
-
-const EMAIL_LINK_EXPIRATION_MINS = 15;
+import { EMAIL_LINK_EXPIRATION_MINS } from "../constants.js";
 
 /* ========================================================================= */
 //                        websites
 /* ========================================================================= */
+const addWebsiteSchema = z.object({
+	url: z.url(),
+	expectedStatus: z.int().min(100).max(599),
+});
 
-/**takes user input, validates format, and stores in db - no fetch requests are made */
+/**takes user input, validates format, and stores in db - no fetch requests are made to url */
 export async function addWebsiteAlert(req: Request, res: Response) {
 	//check session
 	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
 
-	//query params
-	const url = req.query.url;
-	if (typeof url !== "string") return res.status(400).json({ error: "URL is required" });
+	//body
+	const parsed = addWebsiteSchema.safeParse(req.body);
+	if (!parsed.success) return res.status(400).json({ error: "Invalid website alert" });
+	const { url, expectedStatus } = parsed.data;
 
 	//check user provided site syntax and protocol/port
 	const validURL = validateUrl(url).toString();
 	if (!validURL) return res.status(400).json({ error: "Invalid URL" });
 
 	//add to db
-	await insertWebsiteInDb(req.session.email, validURL);
+	await insertWebsiteInDb(req.session.email, validURL, expectedStatus);
 
 	//return 200 for success
 	return res.status(200).json(validURL);

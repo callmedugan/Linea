@@ -1,22 +1,22 @@
 import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "./index.js";
 import { sessions, tokens, websites, type Website } from "./schema.js";
+import { MAX_ALERTS_PER_EMAIL } from "../constants.js";
 
 /* ========================================================================= */
 //                        websites
 /* ========================================================================= */
 
-const MAX_ALERTS = 8;
-
 /**inserts new website record and throws if insert fails or email has too many alerts */
-export async function insertWebsiteInDb(email: string, url: string) {
+export async function insertWebsiteInDb(email: string, url: string, expectedStatus: number) {
 	//count entries
 	const websiteCount = await db.$count(websites, eq(websites.email, email));
-	if (websiteCount >= MAX_ALERTS) throw new Error(`Max number of alerts per account is: ${MAX_ALERTS}`);
+	if (websiteCount >= MAX_ALERTS_PER_EMAIL) throw new Error(`Max number of alerts per account is: ${MAX_ALERTS_PER_EMAIL}`);
 	//insert
 	await db.insert(websites).values({
 		email,
 		url,
+		expectedStatus,
 	});
 }
 

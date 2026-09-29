@@ -32,17 +32,15 @@ export default function DashboardPage() {
 		<main className="dashboard">
 			<header className="dashboard-header">
 				<h1>Linea</h1>
-				<p>Website Monitoring Dashboard</p>
 			</header>
 
 			<section className="dashboard-section">
 				<div className="section-header">
 					<div>
-						<h2>Your Websites</h2>
-						<p>Monitor availability and response status.</p>
+						<h2>Your Alerts</h2>
 					</div>
 
-					<span className="counter">{websites.length}</span>
+					<span className="counter">{websites.length}/8</span>
 				</div>
 
 				<div className="website-list">
