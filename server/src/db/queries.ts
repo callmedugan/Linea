@@ -220,3 +220,13 @@ export async function getSessionFromDb(id: string) {
 	const [result] = await db.select().from(sessions).where(eq(sessions.id, id));
 	return result;
 }
+
+/**deletes website record for email*/
+export async function deleteSessionInDb(email: string) {
+	const [result] = await db.delete(sessions).where(eq(sessions.email, email)).returning();
+
+	//nothing matched the given email and id
+	if (!result) throw new NotFoundError("Session for user not found");
+
+	return result;
+}

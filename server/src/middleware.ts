@@ -5,7 +5,7 @@ import { getSessionFromDb } from "./db/queries.js";
 import type { sessions } from "./db/schema.js";
 
 //for total requests
-export const middlewareGlobalLimiter = rateLimit({
+export const globalLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, //15 mins
 	limit: 10_000,
 	// All requests share the same counter
@@ -20,7 +20,7 @@ export const middlewareGlobalLimiter = rateLimit({
 });
 
 //per IP basis
-export const middlewareIPLimiter = rateLimit({
+export const ipLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, // 15 minutes
 	limit: 500,
 	standardHeaders: "draft-8",
@@ -31,7 +31,7 @@ export const middlewareIPLimiter = rateLimit({
 });
 
 /**for worker routes - limits IP for runaway workers */
-export const middlewareWorkerLimiter = rateLimit({
+export const workerLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000, //15 mins
 	limit: 5000,
 	message: {
@@ -43,7 +43,7 @@ export const middlewareWorkerLimiter = rateLimit({
 });
 
 /** limits magic-link email sends */
-export const middlewareSendEmailLimiter = rateLimit({
+export const sendEmailLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	limit: 5,
 	standardHeaders: "draft-8",
@@ -54,7 +54,7 @@ export const middlewareSendEmailLimiter = rateLimit({
 });
 
 /** limits magic-link verification attempts */
-export const middlewareEmailLinkLimiter = rateLimit({
+export const emailLinkLimiter = rateLimit({
 	windowMs: 15 * 60 * 1000,
 	limit: 20,
 	standardHeaders: "draft-8",
@@ -79,7 +79,7 @@ declare global {
 }
 
 /** used for routes that require a session login */
-export async function middlewareRequireSession(req: Request, res: Response, next: NextFunction) {
+export async function requireSessionMiddleware(req: Request, res: Response, next: NextFunction) {
 	//get session id from cookies
 	const sessionId = req.cookies.session;
 	if (!sessionId) return res.status(401).json({ error: "Unauthorized" });
@@ -94,7 +94,7 @@ export async function middlewareRequireSession(req: Request, res: Response, next
 }
 
 /** used for routes that require an api key - meant to be used by worker - does not expose timing */
-export async function middlewareRequireAPIKey(req: Request, res: Response, next: NextFunction) {
+export async function requireAPIKeyMiddleware(req: Request, res: Response, next: NextFunction) {
 	//get auth header
 	const authHeader = req.get("Authorization");
 	if (authHeader === undefined || !authHeader.startsWith("Bearer ")) return res.sendStatus(401);

@@ -43,9 +43,16 @@ export default function DashboardPage() {
 
 	return (
 		<main className="min-h-svh bg-white px-3 py-6 text-[#6b6375] sm:px-5 sm:py-16 dark:bg-[#121318] dark:text-gray-400">
-			<div className="mx-auto w-full max-w-[900px]">
-				<header className="mb-3 sm:mb-4">
+			<div className="mx-auto w-full max-w-225">
+				<header className="mb-3 flex items-center justify-between sm:mb-4">
 					<img src="/logo.png" alt="Linea" className="h-9 w-auto sm:h-11" />
+
+					<button
+						onClick={handleLogout}
+						className="cursor-pointer rounded-lg border border-[#aa3bff]/20 bg-[#aa3bff]/10 px-3 py-1.5 text-xs font-medium text-[#9225e8] transition hover:border-[#aa3bff]/35 hover:bg-[#aa3bff]/15 active:translate-y-px dark:border-[#c084fc]/20 dark:bg-[#c084fc]/10 dark:text-[#d8b4fe] dark:hover:border-[#c084fc]/35 dark:hover:bg-[#c084fc]/15"
+					>
+						Logout
+					</button>
 				</header>
 
 				<section className="overflow-hidden rounded-xl border border-[#e5e4e7] bg-white shadow-sm dark:border-[#2e303a] dark:bg-[#191a21] dark:shadow-black/30">
@@ -72,4 +79,20 @@ export default function DashboardPage() {
 			</div>
 		</main>
 	);
+
+	async function handleLogout() {
+		try {
+			const response = await fetch("/api/logout", {
+				method: "POST",
+			});
+
+			if (!response.ok) {
+				throw new Error("Failed to logout");
+			}
+
+			navigate("/login", { replace: true });
+		} catch (error) {
+			console.error(error);
+		}
+	}
 }

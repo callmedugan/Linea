@@ -96,7 +96,7 @@ export default function AddWebsiteForm({ onWebsiteAdded }: AddWebsiteFormProps) 
 				<button
 					type="submit"
 					disabled={loading}
-					className="min-h-10 cursor-pointer rounded-lg border border-[#e5e4e7] bg-white px-4 py-2.5 text-sm font-medium text-[#3d3745] transition hover:border-[#aa3bff]/40 hover:bg-[#aa3bff]/5 hover:text-[#9225e8] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 dark:border-[#2e303a] dark:bg-[#191a21] dark:text-gray-200 dark:hover:border-[#c084fc]/40 dark:hover:bg-[#c084fc]/8 dark:hover:text-[#d8b4fe]"
+					className="min-h-10 cursor-pointer rounded-lg border border-[#aa3bff]/20 bg-[#aa3bff]/10 px-4 py-2.5 text-sm font-medium text-[#9225e8] transition hover:border-[#aa3bff]/35 hover:bg-[#aa3bff]/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 dark:border-[#c084fc]/20 dark:bg-[#c084fc]/10 dark:text-[#d8b4fe] dark:hover:border-[#c084fc]/35 dark:hover:bg-[#c084fc]/15"
 				>
 					{loading ? "Adding..." : "Add Website"}
 				</button>

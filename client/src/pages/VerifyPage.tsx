@@ -38,31 +38,33 @@ export default function VerifyPage() {
 
 	return (
 		<main className="flex min-h-svh items-center justify-center bg-white px-4 py-8 text-[#6b6375] sm:px-5 dark:bg-[#121318] dark:text-gray-400">
-			<div className="w-full max-w-[420px]">
-				<header className="mb-6 text-center sm:mb-7">
-					<h1 className="m-0 text-4xl font-semibold tracking-[-1.5px] text-[#08060d] sm:text-[42px] dark:text-gray-100">Linea</h1>
-					<p className="mt-1.5 mb-0">Simple website monitoring.</p>
+			<div className="w-full max-w-105">
+				<header className="mb-6 flex justify-center sm:mb-7">
+					<img src="/logo.png" alt="Linea" className="h-10 w-auto sm:h-12" />
 				</header>
 
 				<section className="rounded-xl border border-[#e5e4e7] bg-white p-5 shadow-sm sm:p-7 dark:border-[#2e303a] dark:bg-[#191a21] dark:shadow-black/30">
-					<div className="mb-6">
-						<h2 className="m-0 text-xl font-semibold text-[#08060d] dark:text-gray-100">Confirm login</h2>
-						{token ? (
-							<p className="mt-1.5 mb-0 text-sm">Continue to your monitoring dashboard.</p>
-						) : (
-							<p className="mt-1.5 mb-0 text-sm">This login link is missing its token.</p>
-						)}
-					</div>
+					{token ? (
+						<>
+							<div className="mb-6">
+								<p className="mb-1 text-sm font-medium text-[#3d3745] dark:text-gray-200">Continue to Linea</p>
+								<p className="m-0 text-xs text-[#6b6375] dark:text-gray-400">Verify this login link to access your monitoring dashboard.</p>
+							</div>
 
-					{token && (
-						<button
-							type="button"
-							onClick={handleVerify}
-							disabled={loading}
-							className="w-full cursor-pointer rounded-lg border-0 bg-[#aa3bff] px-4.5 py-2.5 font-medium text-white transition hover:bg-[#9225e8] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 dark:bg-[#c084fc] dark:hover:bg-[#d8b4fe]"
-						>
-							{loading ? "Verifying..." : "Log in to Linea"}
-						</button>
+							<button
+								type="button"
+								onClick={handleVerify}
+								disabled={loading}
+								className="w-full cursor-pointer rounded-lg border border-[#aa3bff]/20 bg-[#aa3bff]/10 px-4 py-2.5 text-sm font-medium text-[#9225e8] transition hover:border-[#aa3bff]/35 hover:bg-[#aa3bff]/15 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 dark:border-[#c084fc]/20 dark:bg-[#c084fc]/10 dark:text-[#d8b4fe] dark:hover:border-[#c084fc]/35 dark:hover:bg-[#c084fc]/15"
+							>
+								{loading ? "Verifying..." : "Log in"}
+							</button>
+						</>
+					) : (
+						<div>
+							<p className="mb-1 text-sm font-medium text-[#3d3745] dark:text-gray-200">Invalid login link</p>
+							<p className="m-0 text-xs text-[#6b6375] dark:text-gray-400">This login link is missing its verification token.</p>
+						</div>
 					)}
 
 					{error && <p className="mt-3.5 mb-0 text-sm text-red-500">{error}</p>}

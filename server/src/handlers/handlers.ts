@@ -4,6 +4,7 @@ import z from "zod";
 import { getTokens, hashToken } from "../auth/auth.js";
 import {
 	consumeTokenInDb,
+	deleteSessionInDb,
 	deleteWebsiteInDb,
 	getWebsiteBatchFromDb,
 	getWebsitesFromDb,
@@ -16,7 +17,6 @@ import {
 import { websiteBatchSchema } from "../db/schema.js";
 import { sendLoginEmail, sendStatusAlertEmail } from "../email/email.js";
 import { EMAIL_LINK_EXPIRATION_MINS } from "../constants.js";
-import { error } from "node:console";
 
 /* ========================================================================= */
 //                        websites
@@ -27,7 +27,7 @@ const addWebsiteSchema = z.object({
 });
 
 /**takes user input, validates format, and stores in db - no fetch requests are made to url */
-export async function addWebsiteAlert(req: Request, res: Response) {
+export async function addWebsiteAlertHandler(req: Request, res: Response) {
 	//check session
 	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
 
@@ -52,7 +52,7 @@ const websiteIdSchema = z.object({
 });
 
 /**deletes website alert from db with given id and session email */
-export async function deleteWebsiteAlert(req: Request, res: Response) {
+export async function deleteWebsiteAlertHandler(req: Request, res: Response) {
 	//check session
 	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
 
@@ -62,15 +62,14 @@ export async function deleteWebsiteAlert(req: Request, res: Response) {
 	const { id } = result.data;
 
 	//delete from db
-	const deleted = await deleteWebsiteInDb(req.session.email, id);
-	if (!deleted) return res.status(404).json({ error: "Website not found" });
+	await deleteWebsiteInDb(req.session.email, id);
 
 	//return 204 for success
 	return res.sendStatus(204);
 }
 
 /**retrives all website alerts for given session email */
-export async function getWebsiteAlerts(req: Request, res: Response) {
+export async function getWebsiteAlertsHandler(req: Request, res: Response) {
 	//check session
 	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
 
@@ -124,7 +123,7 @@ const tokenSchema = z.object({
 });
 
 /**Checks the token in req body against the db, consumes, and redirects to the user's dashboard*/
-export async function verifyLogin(req: Request, res: Response) {
+export async function verifyLoginHandler(req: Request, res: Response) {
 	//get token from body
 	const result = tokenSchema.safeParse(req.body);
 	if (!result.success) return res.status(400).json({ error: "Invalid token" });
@@ -151,12 +150,31 @@ export async function verifyLogin(req: Request, res: Response) {
 	return res.redirect("/dashboard");
 }
 
+/**Logs auth user out. */
+export async function logoutUserHandler(req: Request, res: Response) {
+	//check session
+	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
+
+	//delete
+	await deleteSessionInDb(req.session.email);
+
+	// remove session cookie from browser
+	res.clearCookie("session", {
+		httpOnly: true,
+		secure: process.env.NODE_ENV !== "dev" && process.env.NODE_ENV !== "development", //only sent over https in prod
+		sameSite: "lax",
+	});
+
+	//return 204 for success
+	return res.sendStatus(204);
+}
+
 /* ========================================================================= */
 //                        worker
 /* ========================================================================= */
 
 /**retrives jobs for worker*/
-export async function getWorkerJobs(req: Request, res: Response) {
+export async function getWorkerJobsHandler(req: Request, res: Response) {
 	//get websites from db
 	const result = await getWebsiteBatchFromDb();
 
@@ -165,7 +183,7 @@ export async function getWorkerJobs(req: Request, res: Response) {
 }
 
 /**submit jobs from worker*/
-export async function submitWorkerJobs(req: Request, res: Response) {
+export async function submitWorkerJobsHandler(req: Request, res: Response) {
 	//read body
 	const submittedJobs = websiteBatchSchema.safeParse(req.body);
 	if (!submittedJobs.success) return res.status(400).json({ error: submittedJobs.error.issues });
@@ -175,7 +193,7 @@ export async function submitWorkerJobs(req: Request, res: Response) {
 	const results = await submitWebsiteBatchToDb(websites);
 
 	//check results to determine if alerts need to be sent
-	await checkSubmitResults(results);
+	await checkSubmitResultsHandler(results);
 
 	//claim more jobs for the worker if they exist
 	const moreJobs = await getWebsiteBatchFromDb();
@@ -185,7 +203,7 @@ export async function submitWorkerJobs(req: Request, res: Response) {
 }
 
 /**check results to determine if alerts need to be sent*/
-async function checkSubmitResults(results: SubmitResult[]) {
+async function checkSubmitResultsHandler(results: SubmitResult[]) {
 	for (const result of results) {
 		//skip new checks
 		if (result.oldStatus === 0) continue;
