@@ -36,7 +36,7 @@ export default function LoginPage() {
 
 	return (
 		<main className="flex min-h-svh items-center justify-center bg-white px-4 py-8 text-[#6b6375] sm:px-5 dark:bg-[#121318] dark:text-gray-400">
-			<div className="w-full max-w-[420px]">
+			<div className="w-full max-w-105">
 				<header className="mb-6 text-center sm:mb-7">
 					<h1 className="m-0 text-4xl font-semibold tracking-[-1.5px] text-[#08060d] sm:text-[42px] dark:text-gray-100">Linea</h1>
 					<p className="mt-1.5 mb-0">Simple website monitoring.</p>
