@@ -1,17 +1,21 @@
-import LoginPage from "./pages/LoginPage";
+import { Navigate, Route, Routes } from "react-router";
+import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardPage from "./pages/DashboardPage";
+import LoginPage from "./pages/LoginPage";
 import VerifyPage from "./pages/VerifyPage";
 
 export default function App() {
-	const path = window.location.pathname;
+	return (
+		<Routes>
+			<Route path="/" element={<Navigate to="/login" replace />} />
+			<Route path="/login" element={<LoginPage />} />
+			<Route path="/auth/verify" element={<VerifyPage />} />
 
-	if (path === "/auth/verify") {
-		return <VerifyPage />;
-	}
+			<Route element={<ProtectedRoute />}>
+				<Route path="/dashboard" element={<DashboardPage />} />
+			</Route>
 
-	if (path === "/dashboard") {
-		return <DashboardPage />;
-	}
-
-	return <LoginPage />;
+			<Route path="*" element={<Navigate to="/login" replace />} />
+		</Routes>
+	);
 }

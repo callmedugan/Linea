@@ -52,6 +52,10 @@ app.set("trust proxy", 1);
 app.use("/api/login", middlewareGlobalLimiter, middlewareIPLimiter);
 app.post("/api/login", middlewareSendEmailLimiter, sendLoginEmailHandler); //send email to login
 app.post("/api/login/verify", middlewareEmailLinkLimiter, verifyEmailLink); //called from the link given to the user's email
+//returns 200 if session is good, otherwise middleware returns error
+app.get("/api/auth/session", middlewareRequireSession, (_req, res) => {
+	res.sendStatus(200);
+});
 
 //websites
 app.use("/api/websites", middlewareGlobalLimiter, middlewareIPLimiter);
@@ -76,7 +80,7 @@ app.use("/api", (req, res) => {
 // Static frontend files
 app.use(express.static(clientPath));
 
-// React Router fallback
+// React Router fallback - this will serve the index.html for react and react router will take over
 app.get("/{*splat}", (_req, res) => {
 	res.sendFile(path.join(clientPath, "index.html"));
 });

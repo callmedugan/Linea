@@ -35,28 +35,30 @@ export default function LoginPage() {
 	}
 
 	return (
-		<main className="auth-page">
-			<div className="auth-container">
-				<header className="auth-header">
-					<h1>Linea</h1>
-					<p>Simple website monitoring.</p>
+		<main className="flex min-h-svh items-center justify-center bg-white px-4 py-8 text-[#6b6375] sm:px-5 dark:bg-[#121318] dark:text-gray-400">
+			<div className="w-full max-w-[420px]">
+				<header className="mb-6 text-center sm:mb-7">
+					<h1 className="m-0 text-4xl font-semibold tracking-[-1.5px] text-[#08060d] sm:text-[42px] dark:text-gray-100">Linea</h1>
+					<p className="mt-1.5 mb-0">Simple website monitoring.</p>
 				</header>
 
-				<section className="auth-card">
+				<section className="rounded-xl border border-[#e5e4e7] bg-white p-5 shadow-sm sm:p-7 dark:border-[#2e303a] dark:bg-[#191a21] dark:shadow-black/30">
 					{success ? (
-						<div className="auth-message">
-							<h2>Check your inbox</h2>
-							<p>We sent you a login link. You may close this tab.</p>
+						<div className="text-center">
+							<h2 className="m-0 text-xl font-semibold text-[#08060d] dark:text-gray-100">Check your inbox</h2>
+							<p className="mt-1.5 mb-0 text-sm">We sent you a login link. You may close this tab.</p>
 						</div>
 					) : (
 						<>
-							<div className="auth-card-header">
-								<h2>Log in</h2>
-								<p>Enter your email to get started.</p>
+							<div className="mb-6">
+								<h2 className="m-0 text-xl font-semibold text-[#08060d] dark:text-gray-100">Log in</h2>
+								<p className="mt-1.5 mb-0 text-sm">Enter your email to get started.</p>
 							</div>
 
-							<form className="auth-form" onSubmit={handleSubmit}>
-								<label htmlFor="email">Email</label>
+							<form className="flex flex-col" onSubmit={handleSubmit}>
+								<label htmlFor="email" className="mb-2 text-sm font-medium text-[#08060d] dark:text-gray-100">
+									Email
+								</label>
 
 								<input
 									id="email"
@@ -66,16 +68,21 @@ export default function LoginPage() {
 									onChange={(e) => setEmail(e.target.value)}
 									required
 									disabled={loading}
+									className="w-full rounded-lg border border-[#e5e4e7] bg-white px-3 py-2.5 text-[#08060d] outline-none transition placeholder:text-[#6b6375]/65 focus:border-[#aa3bff] focus:ring-3 focus:ring-[#aa3bff]/10 disabled:opacity-60 dark:border-[#2e303a] dark:bg-[#191a21] dark:text-gray-100 dark:placeholder:text-gray-400/65 dark:focus:border-[#c084fc] dark:focus:ring-[#c084fc]/10"
 								/>
 
-								<button type="submit" disabled={loading}>
+								<button
+									type="submit"
+									disabled={loading}
+									className="mt-3.5 w-full cursor-pointer rounded-lg border-0 bg-[#aa3bff] px-4.5 py-2.5 font-medium text-white transition hover:bg-[#9225e8] active:translate-y-px disabled:cursor-not-allowed disabled:opacity-55 dark:bg-[#c084fc] dark:hover:bg-[#d8b4fe]"
+								>
 									{loading ? "Sending..." : "Continue with Email"}
 								</button>
 							</form>
 						</>
 					)}
 
-					{error && <p className="form-error">{error}</p>}
+					{error && <p className="mt-3.5 mb-0 text-sm text-red-500">{error}</p>}
 				</section>
 			</div>
 		</main>
