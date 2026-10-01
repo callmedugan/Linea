@@ -2,6 +2,7 @@ import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "./index.js";
 import { sessions, tokens, websites, type Website } from "./schema.js";
 import { MAX_ALERTS_PER_EMAIL } from "../constants.js";
+import { BadRequestError, ConflictError, NotFoundError } from "../handlers/error.js";
 
 /* ========================================================================= */
 //                        websites
@@ -11,13 +12,25 @@ import { MAX_ALERTS_PER_EMAIL } from "../constants.js";
 export async function insertWebsiteInDb(email: string, url: string, expectedStatus: number) {
 	//count entries
 	const websiteCount = await db.$count(websites, eq(websites.email, email));
-	if (websiteCount >= MAX_ALERTS_PER_EMAIL) throw new Error(`Max number of alerts per account is: ${MAX_ALERTS_PER_EMAIL}`);
+	if (websiteCount >= MAX_ALERTS_PER_EMAIL) throw new BadRequestError(`Max number of alerts per account is ${MAX_ALERTS_PER_EMAIL}`);
+
 	//insert
-	await db.insert(websites).values({
-		email,
-		url,
-		expectedStatus,
-	});
+	const [result] = await db
+		.insert(websites)
+		.values({
+			email,
+			url,
+			expectedStatus,
+		})
+		.onConflictDoNothing({
+			target: [websites.url, websites.email],
+		})
+		.returning();
+
+	//duplicate url for the same email
+	if (!result) throw new ConflictError("You are already monitoring this website");
+
+	return result;
 }
 
 /**deletes website record for email and id*/
@@ -26,6 +39,10 @@ export async function deleteWebsiteInDb(email: string, id: string) {
 		.delete(websites)
 		.where(and(eq(websites.id, id), eq(websites.email, email)))
 		.returning();
+
+	//nothing matched the given email and id
+	if (!result) throw new NotFoundError("Website alert not found");
+
 	return result;
 }
 

@@ -41,12 +41,7 @@ export async function addWebsiteAlert(req: Request, res: Response) {
 	if (!validURL) return res.status(400).json({ error: "Invalid URL" });
 
 	//add to db
-	try {
-		await insertWebsiteInDb(req.session.email, validURL, expectedStatus);
-	} catch (e) {
-		if (e instanceof Error) return res.status(400).json({ error: e.message });
-		throw new Error("Something went wrong with the request");
-	}
+	await insertWebsiteInDb(req.session.email, validURL, expectedStatus);
 
 	//return 200 for success
 	return res.status(200).json(validURL);

@@ -13,7 +13,7 @@ function sleep(ms: number) {
 //                        main loop
 /* ========================================================================= */
 
-const WORKER_REQUEST_INTERVAL_SECS = 10;
+const WORKER_REQUEST_INTERVAL_SECS = 5;
 
 async function run() {
 	if (!process.env.SERVER_URL || !process.env.API_KEY) throw new Error("Missing worker environment variables");

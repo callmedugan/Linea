@@ -1,6 +1,7 @@
 import { uuid, text, integer, timestamp, unique, snakeCase, pgEnum } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-orm/zod";
 import z from "zod";
+import { DEFAULT_EXPECTED_STATUS, DEFAULT_INTERVAL_SECS } from "../constants.js";
 
 /* ========================================================================= */
 //                        websites
@@ -15,14 +16,14 @@ export const websites = snakeCase.table(
 		url: text().notNull(),
 		email: text().notNull(),
 		//timestamps
-		intervalSeconds: integer().notNull().default(30),
+		intervalSeconds: integer().notNull().default(DEFAULT_INTERVAL_SECS),
 		nextCheckAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 		createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
 		//worker claims
 		claimId: uuid(),
 		claimedAt: timestamp({ withTimezone: true }),
 		//status
-		expectedStatus: integer().notNull().default(200),
+		expectedStatus: integer().notNull().default(DEFAULT_EXPECTED_STATUS),
 		lastStatus: integer().default(0), //default to 0 for not visited so null can mean no response was received
 		responseTimeMs: integer(),
 		lastError: errorTypeEnum("last_error"),

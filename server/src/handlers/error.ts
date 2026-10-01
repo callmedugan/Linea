@@ -35,9 +35,11 @@ export class ConflictError extends Error {
 	}
 }
 
-export function handlerError(err: Error, req: Request, res: Response, next: NextFunction) {
+export function handlerError(err: Error, _req: Request, res: Response, _next: NextFunction) {
 	let status = 500;
 	let message = "Something went wrong on our end";
+
+	console.log(err.message);
 
 	if (err instanceof BadRequestError) {
 		status = 400;
