@@ -57,7 +57,7 @@ export async function getWebsitesFromDb(email: string) {
 /* ========================================================================= */
 
 /**gets batch of websites for worker to fetch*/
-export async function getWebsiteBatchFromDb(size: number = 5, claimTimeoutSeconds: number = 60): Promise<Website[]> {
+export async function getWebsiteBatchFromDb(size: number = 8, claimTimeoutSeconds: number = 60): Promise<Website[]> {
 	//create claim number for the worker - this will be matched up when sending back the results
 	//to make sure that the most recent update is used
 	const claimId = crypto.randomUUID();
