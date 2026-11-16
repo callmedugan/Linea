@@ -23,6 +23,7 @@ import {
 	verifyLoginHandler,
 } from "./handlers/handlers.js";
 import cookieParser from "cookie-parser";
+import { startDbCleanupRecurring } from "./db/cleanup.js";
 
 const app = express();
 
@@ -89,6 +90,9 @@ app.get("/{*splat}", (_req, res) => {
 
 //error handler last
 app.use(handlerError);
+
+//start cleanup service to remove old tokens/sessions
+await startDbCleanupRecurring();
 
 //listen
 const PORT = Number(process.env.PORT) || 8080;
