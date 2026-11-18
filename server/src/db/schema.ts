@@ -1,4 +1,4 @@
-import { uuid, text, integer, timestamp, unique, snakeCase, pgEnum } from "drizzle-orm/pg-core";
+import { uuid, text, integer, timestamp, unique, snakeCase, pgEnum, boolean, index } from "drizzle-orm/pg-core";
 import { createSelectSchema } from "drizzle-orm/zod";
 import z from "zod";
 import { DEFAULT_EXPECTED_STATUS, DEFAULT_INTERVAL_SECS } from "../constants.js";
@@ -39,6 +39,29 @@ export const websiteSchema = createSelectSchema(websites, {
 	claimedAt: z.coerce.date().nullable(),
 });
 export const websiteBatchSchema = z.array(websiteSchema);
+
+/* ========================================================================= */
+//                        checks
+/* ========================================================================= */
+
+export const checks = snakeCase.table(
+	"checks",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		//foriegn key on the websites table
+		websiteId: uuid()
+			.notNull()
+			.references(() => websites.id, { onDelete: "cascade" }),
+		//null means no resp
+		statusCode: integer(),
+		responseTimeMs: integer(),
+		errorType: errorTypeEnum("error_type"),
+		expectedStatus: integer().notNull(),
+		checkedAt: timestamp({ withTimezone: true }).notNull(),
+	},
+	//create index to quickly find checks for a specific website
+	(table) => [index().on(table.websiteId, table.checkedAt)],
+);
 
 /* ========================================================================= */
 //                        auth

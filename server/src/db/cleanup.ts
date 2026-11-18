@@ -12,12 +12,14 @@ async function cleanupExpiredData() {
 	try {
 		console.log("[Cleanup] Starting...");
 
-		//delete any entries where the expiresAt has past
+		//delete any sessions or tokens that are expired
 		const now = new Date();
 		const sessionsDeleted = await db.delete(sessions).where(lt(sessions.expiresAt, now)).returning();
 		const tokensDeleted = await db.delete(tokens).where(lt(tokens.expiresAt, now)).returning();
 		if (sessionsDeleted.length > 0) console.log(`[Cleanup] Deleted ${sessionsDeleted.length} sessions`);
 		if (tokensDeleted.length > 0) console.log(`[Cleanup] Deleted ${tokensDeleted.length} tokens`);
+
+		//later we can cleanup any website checks older than a retention period
 
 		console.log("[Cleanup] Complete");
 	} catch (error) {
