@@ -14,9 +14,9 @@ import {
 	submitWebsiteBatchToDb,
 	type SubmitResult,
 } from "../db/queries.js";
-import { websiteBatchSchema } from "../db/schema.js";
 import { sendLoginEmail, sendStatusAlertEmail } from "../email/email.js";
 import { EMAIL_LINK_EXPIRATION_MINS } from "../constants.js";
+import { checkSubmitBatchSchema } from "../db/schema.js";
 
 /* ========================================================================= */
 //                        websites
@@ -185,7 +185,7 @@ export async function getWorkerJobsHandler(req: Request, res: Response) {
 /**submit jobs from worker*/
 export async function submitWorkerJobsHandler(req: Request, res: Response) {
 	//read body
-	const submittedJobs = websiteBatchSchema.safeParse(req.body);
+	const submittedJobs = checkSubmitBatchSchema.safeParse(req.body);
 	if (!submittedJobs.success) return res.status(400).json({ error: submittedJobs.error.issues });
 
 	//submit websites to db and get back the results
@@ -193,7 +193,7 @@ export async function submitWorkerJobsHandler(req: Request, res: Response) {
 	const results = await submitWebsiteBatchToDb(websites);
 
 	//check results to determine if alerts need to be sent
-	await checkSubmitResultsHandler(results);
+	//await checkSubmitResults(results); TODO - make seperate process
 
 	//claim more jobs for the worker if they exist
 	const moreJobs = await getWebsiteBatchFromDb();
@@ -202,8 +202,12 @@ export async function submitWorkerJobsHandler(req: Request, res: Response) {
 	return res.status(200).json(moreJobs);
 }
 
+/* ========================================================================= */
+//                        helpers
+/* ========================================================================= */
+
 /**check results to determine if alerts need to be sent*/
-async function checkSubmitResultsHandler(results: SubmitResult[]) {
+async function checkSubmitResults(results: SubmitResult[]) {
 	for (const result of results) {
 		//skip new checks
 		if (result.oldStatus === 0) continue;

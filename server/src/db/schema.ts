@@ -24,21 +24,12 @@ export const websites = snakeCase.table(
 		claimedAt: timestamp({ withTimezone: true }),
 		//status
 		expectedStatus: integer().notNull().default(DEFAULT_EXPECTED_STATUS),
-		lastStatus: integer().default(0), //default to 0 for not visited so null can mean no response was received
-		responseTimeMs: integer(),
-		lastError: errorTypeEnum("last_error"),
 	},
 	(table) => [unique("websites_url_email_unique").on(table.url, table.email)],
 );
 
-//types
+//main type for basic website info
 export type Website = typeof websites.$inferSelect;
-export const websiteSchema = createSelectSchema(websites, {
-	nextCheckAt: z.coerce.date(), //need to coerce all the dates because json has no date type. will throw an error on submitting
-	createdAt: z.coerce.date(),
-	claimedAt: z.coerce.date().nullable(),
-});
-export const websiteBatchSchema = z.array(websiteSchema);
 
 /* ========================================================================= */
 //                        checks
@@ -62,6 +53,45 @@ export const checks = snakeCase.table(
 	//create index to quickly find checks for a specific website
 	(table) => [index().on(table.websiteId, table.checkedAt)],
 );
+
+/* ========================================================================= */
+//                        worker request
+/* ========================================================================= */
+//zod schema for what the worker should receive
+export const checkRequestSchema = createSelectSchema(websites)
+	.pick({
+		id: true,
+		url: true,
+		expectedStatus: true,
+	})
+	.extend({
+		claimId: z.uuid(),
+	});
+
+//batch of requests
+export const checkRequestBatchSchema = z.array(checkRequestSchema);
+//basic type
+export type CheckRequest = z.infer<typeof checkRequestSchema>;
+
+/* ========================================================================= */
+//                        worker submits
+/* ========================================================================= */
+//zod schema for what a worker check should look like when it submits
+export const checkSubmitSchema = createSelectSchema(checks, {
+	checkedAt: z.coerce.date(),
+})
+	.omit({
+		expectedStatus: true,
+		websiteId: true,
+	})
+	.extend({
+		claimId: z.uuid(),
+	});
+
+//batch of checks
+export const checkSubmitBatchSchema = z.array(checkSubmitSchema);
+//main type
+export type CheckSubmit = z.infer<typeof checkSubmitSchema>;
 
 /* ========================================================================= */
 //                        auth

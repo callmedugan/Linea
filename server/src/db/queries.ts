@@ -1,7 +1,7 @@
 import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "./index.js";
-import { sessions, tokens, websites, type Website } from "./schema.js";
-import { MAX_ALERTS_PER_EMAIL } from "../constants.js";
+import { checkRequestBatchSchema, checks, sessions, tokens, websites, type CheckRequest, type CheckSubmit, type Website } from "./schema.js";
+import { DEFAULT_BATCH_SIZE, DEFAULT_CLAIM_TIMEOUT_SECS, MAX_ALERTS_PER_EMAIL } from "../constants.js";
 import { BadRequestError, ConflictError, NotFoundError } from "../handlers/error.js";
 
 /* ========================================================================= */
@@ -57,13 +57,13 @@ export async function getWebsitesFromDb(email: string) {
 /* ========================================================================= */
 
 /**gets batch of websites for worker to fetch*/
-export async function getWebsiteBatchFromDb(size: number = 8, claimTimeoutSeconds: number = 60): Promise<Website[]> {
+export async function getWebsiteBatchFromDb(): Promise<CheckRequest[]> {
 	//create claim number for the worker - this will be matched up when sending back the results
 	//to make sure that the most recent update is used
 	const claimId = crypto.randomUUID();
 
 	//get claim cutoff for when a site should be retried
-	const claimCutoff = new Date(Date.now() - claimTimeoutSeconds * 1000);
+	const claimCutoff = new Date(Date.now() - DEFAULT_CLAIM_TIMEOUT_SECS * 1000);
 	const now = new Date();
 
 	//create a cte that gets matching jobs, limiting by the size and eligible for claiming
@@ -73,17 +73,27 @@ export async function getWebsiteBatchFromDb(size: number = 8, claimTimeoutSecond
 			.from(websites)
 			.where(and(lte(websites.nextCheckAt, now), or(isNull(websites.claimedAt), lte(websites.claimedAt, claimCutoff))))
 			.orderBy(asc(websites.nextCheckAt))
-			.limit(size)
+			.limit(DEFAULT_BATCH_SIZE)
 			.for("update", { skipLocked: true }), //lock the records to prevent double claiming
 	);
 
 	//using the cte, update the records that were selected all in one db call and return
-	return db
+	const dbResult = await db
 		.with(batch)
 		.update(websites)
 		.set({ claimedAt: now, claimId }) //set claimedAt and claimId to generated id to match up later
 		.where(inArray(websites.id, db.select({ id: batch.id }).from(batch)))
-		.returning();
+		.returning({
+			id: websites.id,
+			url: websites.url,
+			expectedStatus: websites.expectedStatus,
+			claimId: websites.claimId,
+		});
+
+	const result = checkRequestBatchSchema.parse(dbResult);
+	if (!result) throw new Error("Error parsing to valid worker batch request");
+
+	return result;
 }
 
 export type SubmitResult = {
@@ -95,84 +105,130 @@ export type SubmitResult = {
 	newStatus: number | null;
 };
 
-/**submits batch of websites from worker*/
-export async function submitWebsiteBatchToDb(websites: Website[]): Promise<SubmitResult[]> {
-	if (websites.length === 0) return [];
+/**submits batch of websites from worker (OLD VERSION)*/
+// export async function submitWebsiteBatchToDb(websites: Website[]): Promise<SubmitResult[]> {
+// 	if (websites.length === 0) return [];
 
-	//create virtual table using sql builder which parameterizes the data - not passed as string literals
-	const values = sql.join(
-		websites.map(
-			(website) => sql`(
-				${website.id}::uuid,
-				${website.claimId}::uuid,
-				${website.lastStatus}::integer,
-				${website.lastError}::error_type,
-				${website.responseTimeMs}::integer
-			)`,
-		),
-		sql`, `,
-	);
+// 	//create virtual table using sql builder which parameterizes the data - not passed as string literals
+// 	const values = sql.join(
+// 		websites.map(
+// 			(website) => sql`(
+// 				${website.id}::uuid,
+// 				${website.claimId}::uuid,
+// 				${website.lastStatus}::integer,
+// 				${website.lastError}::error_type,
+// 				${website.responseTimeMs}::integer
+// 			)`,
+// 		),
+// 		sql`, `,
+// 	);
 
-	//this insane query updates all rows for the submitted sites only if the claim id matches
-	const result = await db.execute<{
-		id: string;
-		email: string;
-		url: string;
-		expectedStatus: number;
-		oldStatus: number | null;
-		newStatus: number | null;
-	}>(sql`
-		--create a temporary table from the worker's submitted results
-		WITH submitted(id, claim_id, last_status, last_error, response_time_ms) AS (
-			VALUES ${values}
-		),
+// 	//this insane query updates all rows for the submitted sites only if the claim id matches
+// 	const result = await db.execute<{
+// 		id: string;
+// 		email: string;
+// 		url: string;
+// 		expectedStatus: number;
+// 		oldStatus: number | null;
+// 		newStatus: number | null;
+// 	}>(sql`
+// 		--create a temporary table from the worker's submitted results
+// 		WITH submitted(id, claim_id, last_status, last_error, response_time_ms) AS (
+// 			VALUES ${values}
+// 		),
 
-		--save the current status before updating
-		--also verify that the worker still owns the claim
-		old AS (
-			SELECT
-				w.id,
-				w.last_status AS old_status
-			FROM websites AS w
-			INNER JOIN submitted AS s
-				ON w.id = s.id
-				AND w.claim_id = s.claim_id
-		)
+// 		--save the current status before updating
+// 		--also verify that the worker still owns the claim
+// 		old AS (
+// 			SELECT
+// 				w.id,
+// 				w.last_status AS old_status
+// 			FROM websites AS w
+// 			INNER JOIN submitted AS s
+// 				ON w.id = s.id
+// 				AND w.claim_id = s.claim_id
+// 		)
 
-		--update each website with the new worker results
-		UPDATE websites AS w
-		SET
-			last_status = s.last_status,
-			last_error = s.last_error,
-			response_time_ms = s.response_time_ms,
+// 		--update each website with the new worker results
+// 		UPDATE websites AS w
+// 		SET
+// 			last_status = s.last_status,
+// 			last_error = s.last_error,
+// 			response_time_ms = s.response_time_ms,
 
-			--schedule the website's next check based on its interval
-			next_check_at = NOW() + (w.interval_seconds * INTERVAL '1 second'),
+// 			--schedule the website's next check based on its interval
+// 			next_check_at = NOW() + (w.interval_seconds * INTERVAL '1 second'),
 
-			--release the job so it can be claimed again when next_check_at is reached
-			claimed_at = NULL,
-			claim_id = NULL
+// 			--release the job so it can be claimed again when next_check_at is reached
+// 			claimed_at = NULL,
+// 			claim_id = NULL
 
-		FROM submitted AS s, old
-		WHERE
-			--match the submitted result to the database record
-			w.id = s.id
-			AND w.id = old.id
+// 		FROM submitted AS s, old
+// 		WHERE
+// 			--match the submitted result to the database record
+// 			w.id = s.id
+// 			AND w.id = old.id
 
-			--only accept the result if this worker still owns the claim
-			AND w.claim_id = s.claim_id
+// 			--only accept the result if this worker still owns the claim
+// 			AND w.claim_id = s.claim_id
 
-		--return both statuses so the server can detect status changes and send alerts
-		RETURNING
-			w.id,
-			w.email,
-			w.url,
-			w.expected_status AS "expectedStatus",
-			old.old_status AS "oldStatus",
-			w.last_status AS "newStatus"
-	`);
+// 		--return both statuses so the server can detect status changes and send alerts
+// 		RETURNING
+// 			w.id,
+// 			w.email,
+// 			w.url,
+// 			w.expected_status AS "expectedStatus",
+// 			old.old_status AS "oldStatus",
+// 			w.last_status AS "newStatus"
+// 	`);
 
-	return result.rows;
+// 	return result.rows;
+// }
+
+export async function submitWebsiteBatchToDb(submittedChecks: CheckSubmit[]) {
+	if (submittedChecks.length === 0) return [];
+
+	return db.transaction(async (tx) => {
+		const results = [];
+
+		for (const check of submittedChecks) {
+			// 1. Update website only if claim ID matches
+			const [updated] = await tx
+				.update(websites)
+				.set({
+					nextCheckAt: sql`NOW() + (${websites.intervalSeconds} * INTERVAL '1 second')`,
+					claimId: null,
+					claimedAt: null,
+				})
+				.where(and(eq(websites.id, check.id), eq(websites.claimId, check.claimId!)))
+				.returning();
+
+			// 2. Ignore stale worker results
+			if (!updated) continue;
+
+			// 3. Insert individual check
+			await tx.insert(checks).values({
+				websiteId: updated.id,
+				statusCode: check.statusCode,
+				responseTimeMs: check.responseTimeMs,
+				errorType: check.errorType,
+				expectedStatus: updated.expectedStatus,
+				checkedAt: new Date(),
+			});
+
+			// 4. Return information for alert processing
+			results.push({
+				id: updated.id,
+				email: updated.email,
+				url: updated.url,
+				expectedStatus: updated.expectedStatus,
+				newStatus: check.statusCode,
+			});
+		}
+
+		console.log(results);
+		return results;
+	});
 }
 
 /* ========================================================================= */
