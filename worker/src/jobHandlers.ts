@@ -5,29 +5,27 @@ import { z } from "zod";
 //                        types
 /* ========================================================================= */
 
-//job claims
-export const jobSchema = z.object({
+// job request - internal only
+export type JobRequest = z.infer<typeof jobRequestSchema>;
+export const jobRequestSchema = z.object({
 	id: z.uuid(),
 	url: z.url(),
-	email: z.email(),
-	//timestamps
-	intervalSeconds: z.number().int().positive(),
-	nextCheckAt: z.coerce.date(),
-	createdAt: z.coerce.date(),
-	//worker claims
 	claimId: z.uuid(),
-	claimedAt: z.coerce.date(),
-	//status
-	responseTimeMs: z.number().int().nonnegative().nullable(),
 	expectedStatus: z.number().int(),
-	lastStatus: z.number().int().nullable(),
-	lastError: z.enum(["timeout", "dns", "connection", "tls", "blocked", "network", "unknown"]).nullable(),
 });
+export const jobRequestBatchSchema = z.array(jobRequestSchema);
+export type JobRequestBatch = z.infer<typeof jobRequestBatchSchema>;
 
-export const jobBatchSchema = z.array(jobSchema);
-
-export type Job = z.infer<typeof jobSchema>;
-export type JobBatch = z.infer<typeof jobBatchSchema>;
+// job submit
+export type JobSubmit = z.infer<typeof jobSubmitSchema>;
+export const jobSubmitSchema = jobRequestSchema.extend({
+	checkedAt: z.coerce.date(),
+	responseTimeMs: z.number().int().nonnegative().nullable(),
+	statusCode: z.number().int().nullable(),
+	errorType: z.enum(["timeout", "dns", "connection", "tls", "blocked", "network", "unknown"]).nullable(),
+});
+export const jobSubmitBatchSchema = z.array(jobSubmitSchema);
+export type JobSubmitBatch = z.infer<typeof jobSubmitBatchSchema>;
 
 //job claim results
 export const jobResultSchema = z.object({
@@ -40,7 +38,7 @@ export type JobResult = z.infer<typeof jobResultSchema>;
 /* ========================================================================= */
 
 /**fetches a job batch */
-export async function claimJobs(): Promise<JobBatch> {
+export async function claimJobs(): Promise<JobRequestBatch> {
 	//fetch
 	const response = await fetch(`${process.env.SERVER_URL}/api/worker/jobs/claim`, {
 		method: "POST",
@@ -52,24 +50,30 @@ export async function claimJobs(): Promise<JobBatch> {
 
 	//batch
 	const data = await response.json();
-	const jobs = jobBatchSchema.parse(data);
+	const jobs = jobRequestBatchSchema.parse(data);
 
 	return jobs;
 }
 
 /**fetches the job url and updates the status */
-export async function workJob(job: Job) {
+export async function workJob(job: JobRequest): Promise<JobSubmit> {
 	//fetch
-	const result = await checkWebsite(job.url);
+	const check = await checkWebsite(job.url);
 
 	//just update each job with the status and res time with the result, server will handle the rest
-	job.lastStatus = result.statusCode;
-	job.lastError = result.error;
-	job.responseTimeMs = result.responseTime;
+	const result: JobSubmit = {
+		...job,
+		checkedAt: new Date(),
+		statusCode: check.statusCode,
+		errorType: check.error,
+		responseTimeMs: check.responseTime,
+	};
+
+	return result;
 }
 
 /**submits worker jobs and returns if more jobs are available immediately for the worker */
-export async function submitWorkerJobs(jobs: JobBatch): Promise<JobBatch> {
+export async function submitWorkerJobs(jobs: JobSubmitBatch): Promise<JobRequestBatch> {
 	const response = await fetch(`${process.env.SERVER_URL}/api/worker/jobs/submit`, {
 		method: "POST",
 		headers: {
@@ -85,7 +89,7 @@ export async function submitWorkerJobs(jobs: JobBatch): Promise<JobBatch> {
 
 	//if more jobs are available
 	const data = await response.json();
-	const moreJobs = jobBatchSchema.parse(data);
+	const moreJobs = jobRequestBatchSchema.parse(data);
 
 	return moreJobs;
 }

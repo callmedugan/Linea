@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { claimJobs, JobBatch, submitWorkerJobs, workJob } from "./jobHandlers.js";
+import { claimJobs, JobRequestBatch, JobSubmitBatch, submitWorkerJobs, workJob } from "./jobHandlers.js";
 
 /* ========================================================================= */
 //                        functions
@@ -22,7 +22,7 @@ async function run() {
 
 	//loop
 	while (true) {
-		let jobs: JobBatch = [];
+		let jobs: JobRequestBatch = [];
 
 		try {
 			//if no jobs, wait and try to claim again
@@ -35,10 +35,10 @@ async function run() {
 			console.log(`[Worker] Processing ${jobs.length} jobs:\n\t${jobs.map((job) => job.url).join("\n\t")}`);
 
 			//update concurrently - make sure not to throw inside promise.all - also need to not overwhelm the network when running concurrently
-			await Promise.all(jobs.map(workJob));
+			const workedJobs: JobSubmitBatch = await Promise.all(jobs.map((job) => workJob(job)));
 
-			//send updated jobs to server and receive next claimed batch
-			jobs = await submitWorkerJobs(jobs);
+			//send updated jobs to server and receive next claimed batch - update jobs
+			jobs = await submitWorkerJobs(workedJobs);
 		} catch (e) {
 			//log
 			console.error("[Worker] Error:", e);

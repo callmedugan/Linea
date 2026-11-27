@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "./index.js";
 import { checkRequestBatchSchema, checks, sessions, tokens, websites, type CheckRequest, type CheckSubmit, type Website } from "./schema.js";
 import { DEFAULT_BATCH_SIZE, DEFAULT_CLAIM_TIMEOUT_SECS, MAX_ALERTS_PER_EMAIL } from "../constants.js";
@@ -46,10 +46,32 @@ export async function deleteWebsiteInDb(email: string, id: string) {
 	return result;
 }
 
-/**gets all website alerts for given email*/
+/** gets all website alerts for given email */
 export async function getWebsitesFromDb(email: string) {
-	const result = db.select().from(websites).where(eq(websites.email, email)).orderBy(asc(websites.createdAt));
-	return result;
+	const latestChecks = db
+		.selectDistinctOn([checks.websiteId], {
+			websiteId: checks.websiteId,
+			statusCode: checks.statusCode,
+			responseTimeMs: checks.responseTimeMs,
+			errorType: checks.errorType,
+			checkedAt: checks.checkedAt,
+		})
+		.from(checks)
+		.orderBy(checks.websiteId, desc(checks.checkedAt))
+		.as("latest_checks");
+
+	return db
+		.select({
+			...getTableColumns(websites),
+			statusCode: latestChecks.statusCode,
+			responseTimeMs: latestChecks.responseTimeMs,
+			errorType: latestChecks.errorType,
+			checkedAt: latestChecks.checkedAt,
+		})
+		.from(websites)
+		.leftJoin(latestChecks, eq(websites.id, latestChecks.websiteId))
+		.where(eq(websites.email, email))
+		.orderBy(asc(websites.createdAt));
 }
 
 /* ========================================================================= */

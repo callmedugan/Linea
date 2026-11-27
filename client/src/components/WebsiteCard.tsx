@@ -20,8 +20,8 @@ export default function WebsiteCard({ website, onDeleted }: WebsiteCardProps) {
 	const [deleting, setDeleting] = useState(false);
 	const [error, setError] = useState("");
 
-	const isPending = website.lastStatus === 0;
-	const isUp = website.lastStatus === website.expectedStatus;
+	const isPending = website.statusCode === 0;
+	const isUp = website.statusCode === website.expectedStatus;
 
 	const statusDotClass = isPending ? "bg-gray-400" : isUp ? "bg-green-500" : "bg-red-500";
 
@@ -56,14 +56,14 @@ export default function WebsiteCard({ website, onDeleted }: WebsiteCardProps) {
 				</div>
 
 				{/* Row 2: status OR error */}
-				<p className={`mt-1 mb-0 text-xs sm:text-[13px] ${website.lastError ? "text-red-500" : "text-[#6b6375] dark:text-gray-400"}`}>
-					{website.lastError
-						? errorMessages[website.lastError]
+				<p className={`mt-1 mb-0 text-xs sm:text-[13px] ${website.errorType ? "text-red-500" : "text-[#6b6375] dark:text-gray-400"}`}>
+					{website.errorType
+						? errorMessages[website.errorType]
 						: isPending
 							? "Pending"
-							: website.lastStatus === null
+							: website.statusCode === null
 								? `No response (expected ${website.expectedStatus})`
-								: `Status: ${website.lastStatus} (expected ${website.expectedStatus})`}
+								: `Status: ${website.statusCode} (expected ${website.expectedStatus})`}
 				</p>
 
 				{/* Row 3: response time */}

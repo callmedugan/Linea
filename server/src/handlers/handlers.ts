@@ -73,7 +73,7 @@ export async function getWebsiteAlertsHandler(req: Request, res: Response) {
 	//check session
 	if (req.session === undefined) return res.status(401).json({ error: "Unauthorized" });
 
-	//get websites from db
+	//get websites from db and their latest status
 	const result = await getWebsitesFromDb(req.session.email);
 
 	//return 200 for success

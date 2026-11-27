@@ -51,7 +51,7 @@ export const checks = snakeCase.table(
 		checkedAt: timestamp({ withTimezone: true }).notNull(),
 	},
 	//create index to quickly find checks for a specific website
-	(table) => [index().on(table.websiteId, table.checkedAt)],
+	(table) => [index().on(table.websiteId, table.checkedAt.desc())],
 );
 
 /* ========================================================================= */
